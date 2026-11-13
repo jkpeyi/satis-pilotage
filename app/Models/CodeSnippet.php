@@ -21,6 +21,13 @@ class CodeSnippet extends Model
     use Archivable, HasUserstamps;
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'kind' => 'finding',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

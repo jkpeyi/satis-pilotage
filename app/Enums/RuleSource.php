@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum RuleSource: string
+use App\Contracts\HasLabel;
+
+enum RuleSource: string implements HasLabel
 {
     case Code = 'code';
     case Documentation = 'documentation';

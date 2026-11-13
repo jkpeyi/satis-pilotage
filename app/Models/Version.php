@@ -22,6 +22,13 @@ class Version extends Model
     use Archivable, HasFactory, HasUserstamps;
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => 'in_production',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

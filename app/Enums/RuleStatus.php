@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum RuleStatus: string
+use App\Contracts\HasLabel;
+
+enum RuleStatus: string implements HasLabel
 {
     case Pending = 'pending';
     case Validated = 'validated';

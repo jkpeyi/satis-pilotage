@@ -5,6 +5,7 @@
             / <a href="{{ route('versions.show', $version) }}" wire:navigate class="hover:text-slate-900">{{ $version->name }}</a>
         </x-slot:breadcrumbs>
         <x-slot:actions>
+            <x-ui.button variant="secondary" wire:click="$set('showInitialize', true)">Initialiser depuis une version</x-ui.button>
             <x-ui.button variant="secondary" wire:click="$set('showCreate', true)">Créer un élément ici</x-ui.button>
             <x-ui.button wire:click="openAttach">Rattacher des éléments</x-ui.button>
         </x-slot:actions>
@@ -124,6 +125,25 @@
             <div class="flex gap-2">
                 <x-ui.button type="submit">Créer et rattacher</x-ui.button>
                 <x-ui.button variant="secondary" x-on:click="open = false">Fermer</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
+
+    <x-ui.modal wire:model="showInitialize" title="Initialiser depuis une autre version">
+        <form wire:submit="initialize" class="space-y-4">
+            <p class="text-sm text-slate-500">
+                Reprend les éléments rattachés à la version source. Les éléments déjà présents ici ne sont pas modifiés.
+            </p>
+            <x-ui.select label="Version source" wire:model="initSourceId" :options="$sourceVersions" placeholder="Choisir…" required />
+            <fieldset class="space-y-2 text-sm text-slate-700">
+                <legend class="text-sm font-medium text-slate-700">Reprendre aussi</legend>
+                <label class="flex items-center gap-2"><input type="checkbox" wire:model="initStatuses" class="rounded border-slate-300 text-brand-700"> Les états (tracés dans l'historique)</label>
+                <label class="flex items-center gap-2"><input type="checkbox" wire:model="initDeviations" class="rounded border-slate-300 text-brand-700"> Les écarts</label>
+                <label class="flex items-center gap-2"><input type="checkbox" wire:model="initRules" class="rounded border-slate-300 text-brand-700"> Les règles métier, avec un lien vers leur origine</label>
+            </fieldset>
+            <div class="flex gap-2">
+                <x-ui.button type="submit">Initialiser</x-ui.button>
+                <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>
             </div>
         </form>
     </x-ui.modal>

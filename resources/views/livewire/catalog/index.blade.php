@@ -130,7 +130,7 @@
                             <ul class="divide-y divide-slate-100 text-sm">
                                 @foreach ($implementations as $implementation)
                                     <li class="flex items-center justify-between gap-3 py-2" wire:key="impl-{{ $implementation->id }}">
-                                        <a href="{{ route('versions.scope', $implementation->version) }}" wire:navigate class="min-w-0 truncate hover:text-brand-700">
+                                        <a href="{{ route('implementations.show', $implementation) }}" wire:navigate class="min-w-0 truncate hover:text-brand-700">
                                             <span class="text-slate-500">{{ $implementation->version->product->name }} ·</span>
                                             {{ $implementation->version->name }}
                                         </a>

@@ -23,6 +23,15 @@ class Issue extends Model
     public const CODE_PREFIX = 'PB-';
 
     /**
+     * Same defaults as the database, so that a new model is complete before refresh.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => 'open',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

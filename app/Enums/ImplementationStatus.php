@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum ImplementationStatus: string
+use App\Contracts\HasLabel;
+
+enum ImplementationStatus: string implements HasLabel
 {
     case NotAssessed = 'not_assessed';
     case Operational = 'operational';

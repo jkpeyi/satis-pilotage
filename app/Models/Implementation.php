@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Contracts\CatalogItem;
 use App\Enums\ImplementationStatus;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\HasUserstamps;
@@ -74,7 +73,7 @@ class Implementation extends Model
     /**
      * The module or the feature this implementation targets.
      */
-    public function catalogItem(): CatalogItem
+    public function catalogItem(): Module|Feature
     {
         /** @var Module|Feature $item */
         $item = $this->module_id !== null ? $this->module : $this->feature;

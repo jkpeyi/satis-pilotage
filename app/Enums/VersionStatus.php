@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum VersionStatus: string
+use App\Contracts\HasLabel;
+
+enum VersionStatus: string implements HasLabel
 {
     case InProduction = 'in_production';
     case InTesting = 'in_testing';

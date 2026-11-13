@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\Auth\LogoutController;
 use App\Livewire\Auth\Login;
+use App\Livewire\BusinessRules;
 use App\Livewire\Catalog;
 use App\Livewire\Customers;
 use App\Livewire\Dashboard;
+use App\Livewire\Implementations;
+use App\Livewire\Issues;
 use App\Livewire\Products;
 use App\Livewire\Technologies;
 use App\Livewire\Versions;
@@ -35,6 +38,12 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/versions/{version}/scope', Versions\Scope::class)->name('versions.scope');
 
     Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
+
+    Route::livewire('/implementations/{implementation}', Implementations\Show::class)->name('implementations.show');
+    Route::livewire('/business-rules', BusinessRules\Index::class)->name('business-rules.index');
+    Route::livewire('/business-rules/{rule}', BusinessRules\Show::class)->name('business-rules.show');
+    Route::livewire('/issues', Issues\Index::class)->name('issues.index');
+    Route::livewire('/issues/{issue}', Issues\Show::class)->name('issues.show');
 
     Route::livewire('/technologies', Technologies\Index::class)->name('technologies.index');
 });
