@@ -5,6 +5,7 @@
             / <a href="{{ route('products.show', $version->product) }}" wire:navigate class="hover:text-slate-900">{{ $version->product->name }}</a>
         </x-slot:breadcrumbs>
         <x-slot:actions>
+            <x-ui.button :href="route('versions.scope', $version)">Périmètre fonctionnel</x-ui.button>
             @if (! $version->isReferenceOfItsProduct() && ! $version->isArchived())
                 <x-ui.button variant="secondary" wire:click="makeReference">Définir comme référence</x-ui.button>
             @endif
