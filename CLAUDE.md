@@ -1,0 +1,89 @@
+# Satis Pilotage
+
+Internal platform used by SATISWORLD's IT department to map and steer the refactoring of the Satis products (Satis Macro, Satis Pro, Satis Assur). It records which customer versions exist, which modules and features each version implements, in what state, with which deviations, business rules and issues.
+
+The functional spec (cahier des charges MVP) and the architecture note are written in French and live outside the repo. The rules below are the parts of them that code must follow.
+
+## Stack
+
+- Laravel 13, PHP 8.3+, MySQL 8.4 (MySQL only: the schema relies on `CHECK` constraints and `FULLTEXT` indexes).
+- Livewire 4 + Alpine.js + Tailwind CSS 4, built with Vite. UI components are our own Blade components in `resources/views/components/ui`.
+- Rich screens: Alpine for the comparison matrix and the catalog tree, SortableJS for drag and drop, Monaco Editor for the code explorer and file diff, Chart.js for reports. Everything is bundled by Vite: never load anything from a CDN.
+- Long texts (deviations, descriptions, rules, solutions) are Markdown, rendered with `league/commonmark` in safe mode.
+- Queue and cache on the database driver. No Redis.
+- Tests: Pest 4 on MySQL. Static analysis: Larastan. Formatting: Pint.
+- Deployment: Docker Compose on a Satisworld server.
+
+Not used, do not add: Filament, roles or permission packages, activity log packages, GitLab CI or GitHub Actions. Do not add any Composer or npm package without the user's approval.
+
+## Commands
+
+```bash
+composer install && npm install
+php artisan migrate
+composer dev          # local server, queue, Vite
+php artisan test      # Pest, needs the MySQL test database
+vendor/bin/pint       # formatting
+vendor/bin/phpstan analyse
+```
+
+## Naming
+
+All code is in English: classes, methods, variables, tables, columns, enum values, routes, config keys, test names and comments. Only text shown to users is in French. Every enum exposes `label(): string` returning its French label.
+
+| Business term (UI, French) | Code |
+|---|---|
+| Produit | `Product` |
+| Client | `Customer` (avoids confusion with `GitLabClient` / HTTP client) |
+| Version | `Version` |
+| Version de référence | `Product::referenceVersion` |
+| Dépôt | `Repository` |
+| Environnement | `Environment` |
+| Technologie, stack | `Technology`, `stack` |
+| Module, sous-module | `Module` (a sub-module is a `Module` with a `parent_id`) |
+| Fonctionnalité | `Feature` |
+| Élément (generic) | `CatalogItem` interface, implemented by `Module` and `Feature` (not a table) |
+| Rattachement | `Implementation` |
+| État | `ImplementationStatus` |
+| Historique d'état | `ImplementationStatusChange` |
+| Écart | `deviation` |
+| Description standard | `standard_description` |
+| Règle métier | `BusinessRule` (displayed `RM-0042`) |
+| Problème | `Issue` (displayed `PB-0042`) |
+| Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |
+| Cartographie des écarts | `ComparisonMatrix` |
+| Explorateur de code | `CodeExplorer` |
+
+## Architecture rules
+
+- All business logic lives in `app/Actions`, one class per use case with a `handle()` method (e.g. `ChangeImplementationStatus`, `AttachCatalogItems`, `ConvertFeatureToSubmodule`). Livewire components only display data and call Actions.
+- Nothing is hard-deleted from the UI: business records are archived through `archived_at`.
+- Every business table has `created_by` and `updated_by`, filled automatically from the authenticated user.
+- No polymorphic relations. When a row can point to one of two tables, use two nullable foreign keys and a `CHECK` constraint ensuring exactly one is set (see `implementations`, `code_snippets`). Columns used in a `CHECK` must not have `ON DELETE` actions (MySQL restriction).
+- No roles: every authenticated user can do everything.
+- Authentication phase 1: local accounts (email + password), created with `php artisan user:create`, no public registration. Phase 2: GitLab OAuth through Socialite; users are matched by `gitlab_id`, then by email.
+- GitLab integration is behind `GITLAB_ENABLED` (false for now). While disabled, repositories and stacks are entered manually and the code explorer is hidden. When enabled, files are always fetched by commit SHA and cached forever.
+
+## Business rules
+
+Each rule must be covered by at least one Pest test whose name starts with its code, e.g. `it('RG-03: rejects an implementation with both a module and a feature')`.
+
+- **RG-01** A module may have a parent module (it is then shown as a sub-module); depth is unlimited and a module cannot be its own ancestor. A feature always belongs to a module.
+- **RG-02** The hierarchy belongs to the catalog and is the same for every version.
+- **RG-03** An implementation targets exactly one module or one feature, and is unique per (version, module) or (version, feature).
+- **RG-04** Attaching an item also attaches its ancestors; descendants are offered by default. New implementations start as `not_assessed`.
+- **RG-05** No implementation means "out of scope for this customer". `missing` means "expected but absent". Only `missing` counts as a gap in reports.
+- **RG-06** Every status change writes one `ImplementationStatusChange` row. That history is append-only.
+- **RG-07** A deviation is described relative to the catalog `standard_description`, never relative to another version.
+- **RG-08** A product's reference version is the default pivot of the comparison matrix. It may be a baseline version with no customer.
+- **RG-09** An issue concerns at least one implementation, possibly in several versions.
+- **RG-10** A code anchor coming from GitLab always stores the commit SHA and a copy of the snippet.
+- **RG-11** A business rule copied to another version keeps a link to its origin rule (`origin_rule_id`).
+- **RG-12** Records are archived, not deleted. Detaching an item that has rules or issues requires confirmation.
+- **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
+- **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
+
+## Working method
+
+- Deliver in small increments, one requirement at a time, and keep the tests green.
+- Run Pint, Larastan and the tests before declaring work done.
