@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasUserstamps;
+use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+#[Fillable(['name', 'country', 'notes'])]
+class Customer extends Model
+{
+    /** @use HasFactory<CustomerFactory> */
+    use Archivable, HasFactory, HasUserstamps;
+
+    /**
+     * @return HasMany<Version, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(Version::class);
+    }
+}
