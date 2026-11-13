@@ -18,7 +18,16 @@
             <div class="space-y-1">
                 <x-ui.nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Tableau de bord</x-ui.nav-link>
             </div>
-            {{-- S1: référentiel links --}}
+            <div class="space-y-1">
+                <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Référentiel</p>
+                <x-ui.nav-link :href="route('products.index')" :active="request()->routeIs('products.*')">Produits</x-ui.nav-link>
+                <x-ui.nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')">Clients</x-ui.nav-link>
+                <x-ui.nav-link :href="route('versions.index')" :active="request()->routeIs('versions.*')">Versions</x-ui.nav-link>
+            </div>
+            <div class="space-y-1">
+                <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Paramètres</p>
+                <x-ui.nav-link :href="route('technologies.index')" :active="request()->routeIs('technologies.*')">Technologies</x-ui.nav-link>
+            </div>
         </nav>
 
         <div class="border-t border-slate-200 p-4 text-sm">
