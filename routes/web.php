@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Livewire\Auth\Login;
 use App\Livewire\BusinessRules;
 use App\Livewire\Catalog;
+use App\Livewire\ComparisonMatrix;
 use App\Livewire\Customers;
 use App\Livewire\Dashboard;
 use App\Livewire\Implementations;
@@ -38,6 +39,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/versions/{version}/scope', Versions\Scope::class)->name('versions.scope');
 
     Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
+    Route::livewire('/comparison', ComparisonMatrix\Index::class)->name('comparison.index');
 
     Route::livewire('/implementations/{implementation}', Implementations\Show::class)->name('implementations.show');
     Route::livewire('/business-rules', BusinessRules\Index::class)->name('business-rules.index');

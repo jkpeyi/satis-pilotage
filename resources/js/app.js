@@ -1,4 +1,5 @@
 import Sortable from 'sortablejs';
+import comparisonMatrix from './comparison-matrix';
 
 /**
  * x-sortable="{ group: 'modules' | 'features', parent: <module id or null> }"
@@ -7,6 +8,8 @@ import Sortable from 'sortablejs';
  * move is sent to Livewire, which re-renders the tree from the server (single source of truth).
  */
 document.addEventListener('alpine:init', () => {
+    window.Alpine.data('comparisonMatrix', comparisonMatrix);
+
     window.Alpine.directive('sortable', (el, { expression }, { evaluate }) => {
         const options = evaluate(expression);
 

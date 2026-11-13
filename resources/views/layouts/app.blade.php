@@ -18,6 +18,7 @@
             <div class="space-y-1">
                 <x-ui.nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Tableau de bord</x-ui.nav-link>
                 <x-ui.nav-link :href="route('catalog.index')" :active="request()->routeIs('catalog.*')">Catalogue</x-ui.nav-link>
+                <x-ui.nav-link :href="route('comparison.index')" :active="request()->routeIs('comparison.*')">Cartographie</x-ui.nav-link>
             </div>
             <div class="space-y-1">
                 <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Qualification</p>
