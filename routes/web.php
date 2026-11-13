@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::livewire('/versions', Versions\Index::class)->name('versions.index');
     Route::livewire('/versions/create', Versions\Form::class)->name('versions.create');
+    Route::livewire('/versions/compare', Versions\Compare::class)->name('versions.compare');
     Route::livewire('/versions/{version}', Versions\Show::class)->name('versions.show');
     Route::livewire('/versions/{version}/edit', Versions\Form::class)->name('versions.edit');
     Route::livewire('/versions/{version}/scope', Versions\Scope::class)->name('versions.scope');

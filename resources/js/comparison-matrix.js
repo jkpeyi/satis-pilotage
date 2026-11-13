@@ -227,6 +227,15 @@ export default () => ({
         this.render();
     },
 
+    /**
+     * Link to the two-version comparison: the pivot against the first other version.
+     */
+    compareUrl() {
+        const other = this.data?.versions.find((version) => version.id !== this.pivot);
+
+        return other ? `/versions/compare?a=${this.pivot}&b=${other.id}` : '#';
+    },
+
     exportExcel() {
         this.$wire.export(this.visibleKeys, this.pivot);
     },
