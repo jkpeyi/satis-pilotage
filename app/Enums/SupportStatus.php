@@ -2,10 +2,12 @@
 
 namespace App\Enums;
 
+use App\Contracts\HasLabel;
+
 /**
  * Support status of a technology version found in a repository stack (EF-503).
  */
-enum SupportStatus: string
+enum SupportStatus: string implements HasLabel
 {
     case Supported = 'supported';
     case EndingSoon = 'ending_soon';

@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum IssueStatus: string
+use App\Contracts\HasLabel;
+
+enum IssueStatus: string implements HasLabel
 {
     case Open = 'open';
     case Analyzed = 'analyzed';

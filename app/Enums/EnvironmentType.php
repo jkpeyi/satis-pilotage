@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum EnvironmentType: string
+use App\Contracts\HasLabel;
+
+enum EnvironmentType: string implements HasLabel
 {
     case Production = 'production';
     case Staging = 'staging';

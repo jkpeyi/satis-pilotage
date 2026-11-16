@@ -7,9 +7,16 @@ use App\Actions\Catalog\CreateModule;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Enums\ImplementationStatus;
+use App\Enums\IssueSeverity;
+use App\Enums\IssueType;
 use App\Enums\RepositoryRole;
+use App\Enums\RuleSource;
+use App\Enums\RuleStatus;
+use App\Enums\SnippetKind;
+use App\Models\BusinessRule;
 use App\Models\Customer;
 use App\Models\Implementation;
+use App\Models\Issue;
 use App\Models\Module;
 use App\Models\Product;
 use App\Models\Repository;
@@ -79,5 +86,54 @@ class DemoSeeder extends Seeder
                 $implementation->update(['status' => $statuses[$index % count($statuses)]]);
             });
         Implementation::query()->where('version_id', $baseline->id)->update(['status' => ImplementationStatus::Operational->value]);
+
+        $this->seedQualification($versionA, $versionB);
+    }
+
+    private function seedQualification(Version $versionA, Version $versionB): void
+    {
+        $implementationOf = fn (Version $version, string $featureName): Implementation => $version->implementations()
+            ->whereHas('feature', fn ($query) => $query->where('name', $featureName))->sole();
+
+        $penaltiesA = $implementationOf($versionA, 'Pénalités de retard');
+        $penaltiesA->update(['deviation' => "Les pénalités sont calculées **par jour calendaire** au lieu de jours ouvrés.\n\nÀ valider avec le métier."]);
+
+        $rule = BusinessRule::query()->create([
+            'implementation_id' => $penaltiesA->id,
+            'title' => 'Plafond des pénalités',
+            'description' => 'Le total des pénalités ne peut pas dépasser 10 % du capital restant dû.',
+            'source' => RuleSource::Code,
+            'status' => RuleStatus::Validated,
+        ]);
+        $rule->codeSnippets()->create([
+            'kind' => SnippetKind::Finding,
+            'language' => 'php',
+            'path' => 'app/Services/PenaltyCalculator.php',
+            'line_start' => 41,
+            'line_end' => 44,
+            'content' => "\$penalty = \$daysLate * \$dailyRate * \$remaining;\n\$cap = \$remaining * 0.10;\n\nreturn min(\$penalty, \$cap);",
+        ]);
+
+        $issue = Issue::query()->create([
+            'title' => 'Arrondi des échéances au centime inférieur',
+            'description' => 'Les montants des échéances sont tronqués au lieu d\'être arrondis, ce qui crée un écart sur la dernière échéance.',
+            'type' => IssueType::Bug,
+            'severity' => IssueSeverity::Major,
+            'proposed_solution' => 'Utiliser un arrondi bancaire et reporter le reliquat sur la dernière échéance.',
+            'effort_days' => 1.5,
+        ]);
+        $issue->implementations()->attach([
+            $implementationOf($versionA, 'Échéancier')->id,
+            $implementationOf($versionB, 'Échéancier')->id,
+        ]);
+
+        $security = Issue::query()->create([
+            'title' => 'Contrôle d\'accès absent sur l\'export des clients',
+            'description' => 'La route d\'export n\'applique pas le middleware d\'autorisation.',
+            'type' => IssueType::Security,
+            'severity' => IssueSeverity::Blocking,
+            'effort_days' => 0.5,
+        ]);
+        $security->implementations()->attach($implementationOf($versionA, 'Recherche')->id);
     }
 }

@@ -61,6 +61,8 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 - Every business table has `created_by` and `updated_by`, filled automatically from the authenticated user.
 - No polymorphic relations. When a row can point to one of two tables, use two nullable foreign keys and a `CHECK` constraint ensuring exactly one is set (see `implementations`, `code_snippets`). Columns used in a `CHECK` must not have `ON DELETE` actions (MySQL restriction).
 - No roles: every authenticated user can do everything.
+- A column with a database default must declare the same default in the model's `$attributes`, so that a model is complete right after `create()`.
+- Enums implement `App\Contracts\HasLabel`; build select options with the `App\Livewire\Concerns\EnumOptions` trait.
 - Authentication phase 1: local accounts (email + password), created with `php artisan user:create`, no public registration. Phase 2: GitLab OAuth through Socialite; users are matched by `gitlab_id`, then by email.
 - GitLab integration is behind `GITLAB_ENABLED` (false for now). While disabled, repositories and stacks are entered manually and the code explorer is hidden. When enabled, files are always fetched by commit SHA and cached forever.
 
@@ -89,7 +91,7 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - Form state and validation live in Livewire Form objects (`app/Livewire/Forms`); their `data()` method validates and returns the typed array passed to the Action.
 - Use the Blade components in `components/ui` (`x-ui.input`, `x-ui.select`, `x-ui.modal`, `x-ui.table`, `x-ui.badge`, `x-ui.markdown`, `x-ui.audit`…) rather than raw markup.
 - After a redirect, use `session()->flash('status', …)`. For an action that stays on the page, use `$this->dispatch('notify', message: …)`.
-- Render user Markdown only through `x-ui.markdown` (safe mode).
+- Render user Markdown only through `x-ui.markdown` (safe mode), and code through `x-ui.code` (escaped, line numbers).
 - Never name a Blade variable `$component` (reserved by Laravel's component system), and never give a Livewire Form a `$component` property (Livewire uses it).
 
 ## Working method

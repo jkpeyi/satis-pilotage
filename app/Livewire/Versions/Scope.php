@@ -6,6 +6,7 @@ use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Implementations\ChangeImplementationStatus;
 use App\Actions\Implementations\CreateCatalogItemInVersion;
 use App\Actions\Implementations\DetachCatalogItems;
+use App\Actions\Implementations\InitializeVersionFrom;
 use App\Enums\ImplementationStatus;
 use App\Exceptions\DetachRequiresConfirmation;
 use App\Models\Implementation;
@@ -56,6 +57,16 @@ class Scope extends Component
     public string $newName = '';
 
     public string $newParentId = '';
+
+    public bool $showInitialize = false;
+
+    public string $initSourceId = '';
+
+    public bool $initStatuses = true;
+
+    public bool $initDeviations = true;
+
+    public bool $initRules = false;
 
     public ?int $historyImplementationId = null;
 
@@ -156,6 +167,24 @@ class Scope extends Component
         $this->dispatch('notify', message: 'Élément créé dans le catalogue et rattaché à cette version.');
     }
 
+    public function initialize(InitializeVersionFrom $initializeVersionFrom): void
+    {
+        $this->validate(
+            ['initSourceId' => ['required', 'integer', Rule::exists('versions', 'id'), Rule::notIn([$this->version->id])]],
+            [],
+            ['initSourceId' => 'version source'],
+        );
+
+        $count = $initializeVersionFrom->handle(Version::query()->findOrFail((int) $this->initSourceId), $this->version, [
+            'statuses' => $this->initStatuses,
+            'deviations' => $this->initDeviations,
+            'rules' => $this->initRules,
+        ]);
+
+        $this->showInitialize = false;
+        $this->dispatch('notify', message: "{$count} élément(s) repris de la version source.");
+    }
+
     public function showHistoryOf(int $implementationId): void
     {
         $this->ensureBelongsToVersion([$implementationId]);
@@ -185,6 +214,11 @@ class Scope extends Component
                 : null,
             'statuses' => collect(ImplementationStatus::cases())->mapWithKeys(fn (ImplementationStatus $status): array => [$status->value => $status->label()]),
             'attachedModuleOptions' => $this->moduleOptions($tree, $byModule->keys()->all()),
+            'sourceVersions' => Version::query()->whereNull('archived_at')->whereKeyNot($this->version->id)
+                ->with('product')->get()
+                ->sortBy(fn (Version $version): string => ($version->product_id === $this->version->product_id ? '0' : '1').$version->product->name.' '.$version->name)
+                ->mapWithKeys(fn (Version $version): array => [$version->id => $version->product->name.' · '.$version->name])
+                ->all(),
             'history' => $this->showHistory && $this->historyImplementationId !== null
                 ? Implementation::query()->with(['statusChanges.user', 'module', 'feature'])->find($this->historyImplementationId)
                 : null,

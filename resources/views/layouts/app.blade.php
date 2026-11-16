@@ -20,6 +20,11 @@
                 <x-ui.nav-link :href="route('catalog.index')" :active="request()->routeIs('catalog.*')">Catalogue</x-ui.nav-link>
             </div>
             <div class="space-y-1">
+                <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Qualification</p>
+                <x-ui.nav-link :href="route('issues.index')" :active="request()->routeIs('issues.*')">Problèmes</x-ui.nav-link>
+                <x-ui.nav-link :href="route('business-rules.index')" :active="request()->routeIs('business-rules.*')">Règles métier</x-ui.nav-link>
+            </div>
+            <div class="space-y-1">
                 <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Référentiel</p>
                 <x-ui.nav-link :href="route('products.index')" :active="request()->routeIs('products.*')">Produits</x-ui.nav-link>
                 <x-ui.nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')">Clients</x-ui.nav-link>

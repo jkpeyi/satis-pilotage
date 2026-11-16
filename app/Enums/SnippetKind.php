@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum SnippetKind: string
+use App\Contracts\HasLabel;
+
+enum SnippetKind: string implements HasLabel
 {
     case Finding = 'finding';
     case Solution = 'solution';

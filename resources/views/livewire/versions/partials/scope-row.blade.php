@@ -3,7 +3,7 @@
     <input type="checkbox" wire:model.live="selectedIds" value="{{ $implementation->id }}" class="rounded border-slate-300 text-brand-700" aria-label="Sélectionner {{ $name }}">
     {{ $toggle ?? '' }}
     <span @class(['min-w-0 flex-1 truncate', 'font-medium text-slate-800' => $isModule, 'text-slate-700' => ! $isModule])>
-        {{ $name }}
+        <a href="{{ route('implementations.show', $implementation) }}" wire:navigate class="hover:text-brand-700 hover:underline">{{ $name }}</a>
         @if ($implementation->deviation) <span class="ml-1 text-xs text-amber-700" title="Écart renseigné">≠ écart</span> @endif
     </span>
     @if ($implementation->business_rules_count) <span class="text-xs text-slate-500" title="Règles métier">{{ $implementation->business_rules_count }} RM</span> @endif

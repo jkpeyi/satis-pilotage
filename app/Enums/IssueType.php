@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum IssueType: string
+use App\Contracts\HasLabel;
+
+enum IssueType: string implements HasLabel
 {
     case Bug = 'bug';
     case TechDebt = 'tech_debt';

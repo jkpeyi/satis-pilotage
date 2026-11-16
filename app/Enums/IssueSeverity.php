@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum IssueSeverity: string
+use App\Contracts\HasLabel;
+
+enum IssueSeverity: string implements HasLabel
 {
     case Blocking = 'blocking';
     case Major = 'major';

@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum RepositoryRole: string
+use App\Contracts\HasLabel;
+
+enum RepositoryRole: string implements HasLabel
 {
     case Backend = 'backend';
     case Frontend = 'frontend';
