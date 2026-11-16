@@ -2,6 +2,7 @@
 
 return [
     'accepted' => 'Le champ :attribute doit être accepté.',
+    'alpha_dash' => 'Le champ :attribute ne peut contenir que des lettres, chiffres, tirets et underscores.',
     'array' => 'Le champ :attribute doit être une liste.',
     'boolean' => 'Le champ :attribute doit être vrai ou faux.',
     'confirmed' => 'La confirmation du champ :attribute ne correspond pas.',

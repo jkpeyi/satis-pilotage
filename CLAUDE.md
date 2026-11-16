@@ -83,6 +83,15 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
 - **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
 
+## UI conventions
+
+- Full-page Livewire components are classes in `app/Livewire/<Area>/` (e.g. `Products\Index`, `Products\Form`, `Products\Show`), registered with `Route::livewire()`. Layout: `resources/views/layouts/app.blade.php` (`layouts::app`).
+- Form state and validation live in Livewire Form objects (`app/Livewire/Forms`); their `data()` method validates and returns the typed array passed to the Action.
+- Use the Blade components in `components/ui` (`x-ui.input`, `x-ui.select`, `x-ui.modal`, `x-ui.table`, `x-ui.badge`, `x-ui.markdown`, `x-ui.audit`…) rather than raw markup.
+- After a redirect, use `session()->flash('status', …)`. For an action that stays on the page, use `$this->dispatch('notify', message: …)`.
+- Render user Markdown only through `x-ui.markdown` (safe mode).
+- Never name a Blade variable `$component` (reserved by Laravel's component system), and never give a Livewire Form a `$component` property (Livewire uses it).
+
 ## Working method
 
 - Deliver in small increments, one requirement at a time, and keep the tests green.
