@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LogoutController;
 use App\Livewire\Auth\Login;
+use App\Livewire\Catalog;
 use App\Livewire\Customers;
 use App\Livewire\Dashboard;
 use App\Livewire\Products;
@@ -31,6 +32,9 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/versions/create', Versions\Form::class)->name('versions.create');
     Route::livewire('/versions/{version}', Versions\Show::class)->name('versions.show');
     Route::livewire('/versions/{version}/edit', Versions\Form::class)->name('versions.edit');
+    Route::livewire('/versions/{version}/scope', Versions\Scope::class)->name('versions.scope');
+
+    Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
 
     Route::livewire('/technologies', Technologies\Index::class)->name('technologies.index');
 });

@@ -20,4 +20,18 @@ enum ImplementationStatus: string
             self::Missing => 'Absent',
         };
     }
+
+    /**
+     * Badge color in the UI. Semantic: green ok, amber to improve, red defective, violet missing.
+     */
+    public function color(): string
+    {
+        return match ($this) {
+            self::NotAssessed => 'gray',
+            self::Operational => 'green',
+            self::NeedsImprovement => 'amber',
+            self::Defective => 'red',
+            self::Missing => 'violet',
+        };
+    }
 }

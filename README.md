@@ -17,6 +17,12 @@ php artisan user:create
 composer dev
 ```
 
+Données de démonstration (fictives, jamais en production) :
+
+```bash
+php artisan migrate:fresh && php artisan db:seed --class=DemoSeeder && php artisan user:create
+```
+
 Avant chaque livraison :
 
 ```bash
