@@ -6,6 +6,7 @@
             @if ($product->isArchived()) <x-ui.badge>Archivé</x-ui.badge> @endif
         </x-slot:breadcrumbs>
         <x-slot:actions>
+            <x-ui.button :href="route('comparison.index', ['product' => $product->id])">Cartographie</x-ui.button>
             <x-ui.button variant="secondary" :href="route('products.edit', $product)">Modifier</x-ui.button>
             <x-ui.button variant="ghost" wire:click="toggleArchive"
                 wire:confirm="{{ $product->isArchived() ? 'Restaurer ce produit ?' : 'Archiver ce produit ? Il ne sera plus proposé dans les listes.' }}">

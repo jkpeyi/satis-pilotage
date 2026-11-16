@@ -25,7 +25,7 @@ RUN npm run build
 # ---- Application (php-fpm) ----
 FROM php:8.3-fpm-alpine AS app
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions pdo_mysql intl zip bcmath opcache pcntl
+RUN install-php-extensions pdo_mysql intl zip gd bcmath opcache pcntl
 COPY docker/php/app.ini /usr/local/etc/php/conf.d/zz-app.ini
 WORKDIR /var/www/html
 COPY --chown=www-data:www-data . .

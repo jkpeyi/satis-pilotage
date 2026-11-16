@@ -23,6 +23,12 @@ Données de démonstration (fictives, jamais en production) :
 php artisan migrate:fresh && php artisan db:seed --class=DemoSeeder && php artisan user:create
 ```
 
+Volumétrie (environ 2 100 éléments × 20 versions, pour vérifier les performances) :
+
+```bash
+php artisan db:seed --class=VolumeSeeder
+```
+
 Avant chaque livraison :
 
 ```bash

@@ -92,6 +92,7 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - Use the Blade components in `components/ui` (`x-ui.input`, `x-ui.select`, `x-ui.modal`, `x-ui.table`, `x-ui.badge`, `x-ui.markdown`, `x-ui.audit`…) rather than raw markup.
 - After a redirect, use `session()->flash('status', …)`. For an action that stays on the page, use `$this->dispatch('notify', message: …)`.
 - Render user Markdown only through `x-ui.markdown` (safe mode), and code through `x-ui.code` (escaped, line numbers).
+- The comparison matrix is rendered in the browser (`resources/js/comparison-matrix.js`) from a compact JSON payload, with row virtualization: only rows in view are in the DOM. Keep it that way; a Blade table does not scale to thousands of rows × 20 versions (ENF-06).
 - Never name a Blade variable `$component` (reserved by Laravel's component system), and never give a Livewire Form a `$component` property (Livewire uses it).
 
 ## Working method
