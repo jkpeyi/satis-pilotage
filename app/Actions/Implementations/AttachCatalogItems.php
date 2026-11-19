@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Ancestors are always attached so that the version tree stays consistent; descendants are
  * attached unless $withDescendants is false. An implementation archived earlier is restored
- * instead of being created again (unique per version and item, RG-03). New ones start as not assessed.
+ * instead of being created again (unique per version and item, RG-03). New ones start with an unknown presence.
  */
 final class AttachCatalogItems
 {
@@ -112,7 +112,7 @@ final class AttachCatalogItems
             'version_id' => $versionId,
             'module_id' => $moduleId,
             'feature_id' => $featureId,
-            'status' => ImplementationStatus::NotAssessed->value,
+            'status' => ImplementationStatus::Unknown->value,
             'created_by' => $userId,
             'updated_by' => $userId,
             'created_at' => $now,

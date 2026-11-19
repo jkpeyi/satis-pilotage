@@ -44,13 +44,13 @@ it('RG-04: attaching a module attaches its descendants unless asked otherwise', 
         ->and(attachedNames($other))->toBe(['Crédit', 'Octroi']);
 });
 
-it('RG-04: attaches to several versions at once and starts as not assessed', function () {
+it('RG-04: attaches to several versions at once and starts with an unknown presence', function () {
     $versions = Version::factory()->count(2)->create();
 
     app(AttachCatalogItems::class)->handle($versions->modelKeys(), [], [$this->scoring->id]);
 
     expect(Implementation::query()->count())->toBe(6)
-        ->and(Implementation::query()->pluck('status')->unique()->all())->toBe([ImplementationStatus::NotAssessed]);
+        ->and(Implementation::query()->pluck('status')->unique()->all())->toBe([ImplementationStatus::Unknown]);
 });
 
 it('RG-03: attaching twice creates nothing new and restores an archived implementation', function () {

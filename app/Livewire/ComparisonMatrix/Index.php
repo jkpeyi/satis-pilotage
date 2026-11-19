@@ -92,6 +92,8 @@ class Index extends Component
             'rows' => $data['rows'],
             'cells' => $this->compactCells($data['cells']),
             'pivot' => $this->pivot !== '' ? (int) $this->pivot : null,
+            // Status index => value and label, so the renderer never duplicates the enum.
+            'statuses' => array_map(fn (ImplementationStatus $status): array => ['value' => $status->value, 'label' => $status->label()], ImplementationStatus::cases()),
         ];
     }
 

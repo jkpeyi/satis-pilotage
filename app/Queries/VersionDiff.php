@@ -2,7 +2,7 @@
 
 namespace App\Queries;
 
-use App\Enums\ImplementationStatus;
+use App\Enums\FeaturePresence;
 use App\Models\BusinessRule;
 use App\Models\Implementation;
 use App\Models\Version;
@@ -101,7 +101,8 @@ final class VersionDiff
 
     private function isPresent(?Implementation $implementation): bool
     {
-        return $implementation !== null && $implementation->status !== ImplementationStatus::Missing;
+        return $implementation !== null
+            && ! in_array($implementation->status->presence(), [FeaturePresence::Absent, FeaturePresence::NotApplicable], true);
     }
 
     /**

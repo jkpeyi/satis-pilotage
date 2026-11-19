@@ -39,14 +39,14 @@ it('lists what each version has that the other lacks, grouped at the highest lev
         ->and($diff['counts'])->toBe(['onlyInA' => 4, 'onlyInB' => 0, 'different' => 0, 'same' => 2]);
 });
 
-it('RG-05: treats an item marked missing as absent from the version', function () {
+it('RG-05: treats an item marked absent as missing from the version', function () {
     app(AttachCatalogItems::class)->handle([$this->a->id, $this->b->id], [$this->credit->id]);
-    implementationOf($this->b, $this->scoring)->update(['status' => ImplementationStatus::Missing]);
+    implementationOf($this->b, $this->scoring)->update(['status' => ImplementationStatus::Absent]);
 
     $diff = app(VersionDiff::class)->build($this->a, $this->b);
 
     expect(array_column($diff['onlyInA'], 'name'))->toBe(['Scoring'])
-        ->and($diff['onlyInA'][0]['other']->status)->toBe(ImplementationStatus::Missing);
+        ->and($diff['onlyInA'][0]['other']->status)->toBe(ImplementationStatus::Absent);
 });
 
 it('lists items present in both versions but different, with the reasons', function () {

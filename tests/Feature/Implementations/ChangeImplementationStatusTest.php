@@ -14,7 +14,7 @@ it('RG-06: records a history row when the status is saved through the model', fu
     $implementation->update(['status' => ImplementationStatus::Defective]);
 
     $change = $implementation->statusChanges()->sole();
-    expect($change->from_status)->toBe(ImplementationStatus::NotAssessed)
+    expect($change->from_status)->toBe(ImplementationStatus::Unknown)
         ->and($change->to_status)->toBe(ImplementationStatus::Defective)
         ->and($change->user_id)->toBe($user->id);
 });

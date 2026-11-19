@@ -38,13 +38,13 @@ it('RG-06: changes one status and records who did it', function () {
 it('EF-206: changes the status of the selection with a note', function () {
     Livewire::test(Scope::class, ['version' => $this->version])
         ->call('selectAll')
-        ->set('bulkStatus', 'needs_improvement')
+        ->set('bulkStatus', 'partial')
         ->set('bulkNote', 'Revue Crédit')
         ->call('applyBulkStatus')
         ->assertHasNoErrors()
         ->assertSet('selectedIds', []);
 
-    expect($this->version->implementations()->pluck('status')->unique()->all())->toBe([ImplementationStatus::NeedsImprovement]);
+    expect($this->version->implementations()->pluck('status')->unique()->all())->toBe([ImplementationStatus::Partial]);
 });
 
 it('refuses to change implementations of another version', function () {
@@ -56,10 +56,10 @@ it('refuses to change implementations of another version', function () {
 });
 
 it('filters the scope by status', function () {
-    $this->featureImplementation->update(['status' => ImplementationStatus::Missing]);
+    $this->featureImplementation->update(['status' => ImplementationStatus::Absent]);
 
     Livewire::test(Scope::class, ['version' => $this->version])
-        ->set('statusFilter', 'missing')
+        ->set('statusFilter', 'absent')
         ->assertSee('Simulation')
         ->assertDontSee('Crédit</span>', escape: false);
 });

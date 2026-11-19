@@ -27,11 +27,14 @@
 
             <x-ui.card title="Évaluation dans cette version">
                 <form wire:submit="saveAssessment" class="space-y-4">
-                    <div class="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
-                        <x-ui.select label="État" wire:model="assessment.status" :options="$statuses" required />
-                        <x-ui.input label="Commentaire d'évaluation" wire:model="assessment.assessment_note"
-                            hint="Repris dans l'historique si l'état change." />
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.select label="Présence" wire:model.live="assessment.presence" :options="$presences" required />
+                        <x-ui.select label="Fonctionnement" wire:model="assessment.operation" :options="$operations" required
+                            :disabled="$assessment->presence !== 'present'"
+                            :hint="$assessment->presence !== 'present' ? 'Sans objet : l’élément n’est pas présent.' : null" />
                     </div>
+                    <x-ui.input label="Commentaire d'évaluation" wire:model="assessment.assessment_note"
+                        hint="Repris dans l'historique si l'état change." />
                     <x-ui.textarea label="Écart" wire:model="assessment.deviation" rows="6"
                         hint="En quoi cette version diffère de la description standard. Markdown. Laisser vide si conforme." />
                     <x-ui.button type="submit">Enregistrer l'évaluation</x-ui.button>

@@ -55,11 +55,11 @@ it('RG-03: resolves the targeted catalog item', function () {
         ->and($onFeature->catalogItem())->toBeInstanceOf(Feature::class);
 });
 
-it('RG-04: starts a new implementation as not assessed', function () {
+it('RG-04: starts a new implementation with an unknown presence', function () {
     $implementation = Implementation::query()->create([
         'version_id' => Version::factory()->create()->id,
         'module_id' => Module::factory()->create()->id,
     ]);
 
-    expect($implementation->refresh()->status)->toBe(ImplementationStatus::NotAssessed);
+    expect($implementation->refresh()->status)->toBe(ImplementationStatus::Unknown);
 });

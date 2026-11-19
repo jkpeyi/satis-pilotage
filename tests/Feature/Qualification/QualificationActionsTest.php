@@ -58,13 +58,13 @@ function issueData(array $overrides = []): array
 
 it('RG-06 / RG-07: saves the assessment and records the status change with its note', function () {
     app(UpdateImplementationAssessment::class)->handle($this->implementation, [
-        'status' => ImplementationStatus::NeedsImprovement,
+        'status' => ImplementationStatus::Partial,
         'deviation' => 'Le **taux** est saisi en mensuel au lieu d\'annuel.',
         'assessment_note' => 'Vu avec le métier',
     ], $this->user);
 
     $this->implementation->refresh();
-    expect($this->implementation->status)->toBe(ImplementationStatus::NeedsImprovement)
+    expect($this->implementation->status)->toBe(ImplementationStatus::Partial)
         ->and($this->implementation->deviation)->toContain('mensuel')
         ->and($this->implementation->assessed_by)->toBe($this->user->id)
         ->and($this->implementation->statusChanges()->sole()->note)->toBe('Vu avec le métier');
@@ -169,7 +169,7 @@ it('EF-108: copies only the structure by default and keeps items already attache
     $count = app(InitializeVersionFrom::class)->handle($this->source, $target, ['statuses' => false, 'deviations' => false, 'rules' => false]);
 
     expect($count)->toBe(0)
-        ->and($existing->refresh()->status)->toBe(ImplementationStatus::NotAssessed)
+        ->and($existing->refresh()->status)->toBe(ImplementationStatus::Unknown)
         ->and($existing->businessRules()->count())->toBe(0);
 });
 

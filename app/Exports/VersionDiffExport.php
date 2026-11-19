@@ -32,7 +32,7 @@ final class VersionDiffExport implements Export, WithMultipleSheets
                     $entry['typeLabel'],
                     $entry['path'],
                     $entry['implementation']->status->label(),
-                    $otherImplementation !== null ? 'Marqué « Absent »' : 'Non rattaché',
+                    $otherImplementation !== null ? 'Marqué « '.$otherImplementation->status->label().' »' : 'Non rattaché',
                     implode(', ', $entry['children']),
                 ];
             }

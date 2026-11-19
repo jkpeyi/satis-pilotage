@@ -23,7 +23,7 @@ class ImplementationFactory extends Factory
             'version_id' => Version::factory(),
             'module_id' => Module::factory(),
             'feature_id' => null,
-            'status' => ImplementationStatus::NotAssessed,
+            'status' => ImplementationStatus::Unknown,
         ];
     }
 

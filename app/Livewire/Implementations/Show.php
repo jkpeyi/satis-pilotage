@@ -5,7 +5,8 @@ namespace App\Livewire\Implementations;
 use App\Actions\BusinessRules\SaveBusinessRule;
 use App\Actions\Implementations\UpdateImplementationAssessment;
 use App\Actions\Issues\SaveIssue;
-use App\Enums\ImplementationStatus;
+use App\Enums\FeatureOperation;
+use App\Enums\FeaturePresence;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
 use App\Enums\IssueType;
@@ -109,6 +110,11 @@ class Show extends Component
         $this->dispatch('notify', message: 'Problème lié à cet élément.');
     }
 
+    public function updatedAssessmentPresence(): void
+    {
+        $this->assessment->syncOperation();
+    }
+
     public function render(): View
     {
         $this->implementation->load(['version.product', 'version.customer', 'module', 'feature', 'assessor', 'statusChanges.user']);
@@ -124,7 +130,8 @@ class Show extends Component
             'rules' => $this->implementation->businessRules()->whereNull('archived_at')->withCount(['codeSnippets' => fn ($query) => $query->whereNull('archived_at')])->orderBy('id')->get(),
             'issues' => $this->implementation->issues()->whereNull('issues.archived_at')->orderBy('issues.id')->get(),
             'knownIssues' => $this->knownIssuesElsewhere(),
-            'statuses' => $this->enumOptions(ImplementationStatus::class),
+            'presences' => $this->enumOptions(FeaturePresence::class),
+            'operations' => $this->enumOptions(FeatureOperation::class),
             'sources' => $this->enumOptions(RuleSource::class),
             'ruleStatuses' => $this->enumOptions(RuleStatus::class),
             'issueTypes' => $this->enumOptions(IssueType::class),

@@ -44,7 +44,8 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Fonctionnalité | `Feature` |
 | Élément (generic) | `CatalogItem` interface, implemented by `Module` and `Feature` (not a table) |
 | Rattachement | `Implementation` |
-| État | `ImplementationStatus` |
+| État | `ImplementationStatus`: one value per valid (presence, operation) pair of the README d'intégration |
+| Présence, fonctionnement | `FeaturePresence`, `FeatureOperation`, derived with `presence()` / `operation()`, combined with `fromAxes()` |
 | Historique d'état | `ImplementationStatusChange` |
 | Écart | `deviation` |
 | Description standard | `standard_description` |
@@ -73,8 +74,8 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-01** A module may have a parent module (it is then shown as a sub-module); depth is unlimited and a module cannot be its own ancestor. A feature always belongs to a module.
 - **RG-02** The hierarchy belongs to the catalog and is the same for every version.
 - **RG-03** An implementation targets exactly one module or one feature, and is unique per (version, module) or (version, feature).
-- **RG-04** Attaching an item also attaches its ancestors; descendants are offered by default. New implementations start as `not_assessed`.
-- **RG-05** No implementation means "out of scope for this customer". `missing` means "expected but absent". Only `missing` counts as a gap in reports.
+- **RG-04** Attaching an item also attaches its ancestors; descendants are offered by default. New implementations start as `unknown` (presence unknown, not tested).
+- **RG-05** No implementation means "out of scope for this customer". `absent` means "expected but absent". Only `absent` counts as a gap in reports (`ImplementationStatus::isGap()`).
 - **RG-06** Every status change writes one `ImplementationStatusChange` row. That history is append-only.
 - **RG-07** A deviation is described relative to the catalog `standard_description`, never relative to another version.
 - **RG-08** A product's reference version is the default pivot of the comparison matrix. It may be a baseline version with no customer.
