@@ -54,7 +54,8 @@ it('renders the S3 pages', function () {
 it('EF-205: shows the standard description and saves the assessment', function () {
     Livewire::test(Implementations\Show::class, ['implementation' => $this->implementation])
         ->assertSeeHtml('<strong>échéances</strong>')
-        ->set('assessment.status', 'defective')
+        ->set('assessment.presence', 'present')
+        ->set('assessment.operation', 'defective')
         ->set('assessment.deviation', 'Le taux est mensuel.')
         ->set('assessment.assessment_note', 'Atelier du 13/11')
         ->call('saveAssessment')
@@ -64,6 +65,19 @@ it('EF-205: shows the standard description and saves the assessment', function (
     expect($this->implementation->refresh()->status)->toBe(ImplementationStatus::Defective)
         ->and($this->implementation->deviation)->toBe('Le taux est mensuel.')
         ->and($this->implementation->statusChanges()->sole()->note)->toBe('Atelier du 13/11');
+});
+
+it('ignores the operation of an item that is not present', function () {
+    Livewire::test(Implementations\Show::class, ['implementation' => $this->implementation])
+        ->set('assessment.presence', 'present')
+        ->assertSet('assessment.operation', 'not_tested')
+        ->set('assessment.operation', 'operational')
+        ->set('assessment.presence', 'absent')
+        ->assertSet('assessment.operation', 'not_applicable')
+        ->call('saveAssessment')
+        ->assertHasNoErrors();
+
+    expect($this->implementation->refresh()->status)->toBe(ImplementationStatus::Absent);
 });
 
 it('EF-207: creates a business rule from the sheet', function () {

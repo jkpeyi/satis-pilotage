@@ -43,7 +43,7 @@ class VolumeSeeder extends Seeder
 
         $attach->handle($versionIds, $rootIds);
 
-        DB::statement("UPDATE implementations SET status = ELT(1 + ((id * 7 + version_id) % 5), 'not_assessed', 'operational', 'needs_improvement', 'defective', 'missing') WHERE version_id IN (".implode(',', $versionIds).')');
+        DB::statement("UPDATE implementations SET status = ELT(1 + ((id * 7 + version_id) % 8), 'unknown', 'operational', 'partial', 'defective', 'absent', 'not_tested', 'present_not_applicable', 'not_applicable') WHERE version_id IN (".implode(',', $versionIds).')');
         DB::statement("UPDATE implementations SET deviation = 'Écart de démonstration' WHERE id % 11 = 0 AND version_id IN (".implode(',', $versionIds).')');
     }
 }

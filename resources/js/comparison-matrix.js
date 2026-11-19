@@ -10,10 +10,8 @@
  * scrolling and painting cost the same with 50 or 5 000 rows (ENF-06).
  *
  * A cell is [implementation id, status index, has deviation, rules, issues]; the status index
- * follows App\Enums\ImplementationStatus::cases().
+ * follows App\Enums\ImplementationStatus::cases(), whose values and labels come with the payload.
  */
-const STATUS_LABELS = ['Non évalué', 'Opérationnel', 'À améliorer', 'Défaillant', 'Absent'];
-const STATUS_VALUES = ['not_assessed', 'operational', 'needs_improvement', 'defective', 'missing'];
 const OVERSCAN = 20;
 
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -70,7 +68,7 @@ export default () => ({
     rowMatches(row) {
         const cells = this.data.versions.map((version) => this.cell(row, version.id)).filter(Boolean);
         const { diffOnly, status, withDeviation, withIssue } = this.filters;
-        const statusIndex = STATUS_VALUES.indexOf(status);
+        const statusIndex = this.data.statuses.findIndex((entry) => entry.value === status);
 
         return (!diffOnly || this.rowDiffers(row))
             && (!status || cells.some((cell) => cell[1] === statusIndex))
@@ -192,7 +190,7 @@ export default () => ({
                 cells += `<td class="e${css}" title="Non rattaché">—</td>`;
             } else {
                 const marks = (cell[2] ? '≠ ' : '') + (cell[3] ? `${cell[3]}RM ` : '') + (cell[4] ? `${cell[4]}PB` : '');
-                cells += `<td class="${css}"><button type="button" data-cell="${cell[0]}" class="c s${cell[1]}"><span>${STATUS_LABELS[cell[1]]}</span><span class="k">${marks}</span></button></td>`;
+                cells += `<td class="${css}"><button type="button" data-cell="${cell[0]}" class="c s${cell[1]}"><span>${escape(this.data.statuses[cell[1]]?.label)}</span><span class="k">${marks}</span></button></td>`;
             }
         }
 

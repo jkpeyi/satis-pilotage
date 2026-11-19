@@ -13,7 +13,7 @@
                     <span class="flex shrink-0 items-center gap-2 text-xs">
                         <x-ui.badge :color="$entry['implementation']->status->color()">{{ $entry['implementation']->status->label() }}</x-ui.badge>
                         @if ($entry['other'])
-                            <span class="text-violet-700" title="Rattaché mais marqué Absent dans {{ $other->name }}">« Absent » dans l'autre</span>
+                            <span class="text-violet-700" title="Rattaché mais marqué {{ $entry['other']->status->label() }} dans {{ $other->name }}">« {{ $entry['other']->status->label() }} » dans l'autre</span>
                         @endif
                     </span>
                 </div>

@@ -32,7 +32,7 @@ class Implementation extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'status' => 'not_assessed',
+        'status' => 'unknown',
     ];
 
     /**

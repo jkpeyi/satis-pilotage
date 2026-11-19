@@ -68,3 +68,5 @@
 .mx .s2 { background: var(--color-amber-50); color: var(--color-amber-800); }
 .mx .s3 { background: var(--color-red-50); color: var(--color-red-700); }
 .mx .s4 { background: var(--color-violet-50); color: var(--color-violet-700); }
+.mx .s5 { background: var(--color-brand-50); color: var(--color-brand-700); }
+.mx .s6, .mx .s7 { background: var(--color-slate-50); color: var(--color-slate-500); }
