@@ -44,7 +44,11 @@ final class ArchiveCatalogItem
             $this->ensureRestorable($moduleIds, $featureIds);
         }
 
-        DB::transaction(function () use ($item, $archive, $moduleIds, $featureIds): void {
+        DB::transaction(function () use ($item, $archive, $moduleIds, $featureIds, $tree): void {
+            if ($archive && $item instanceof Module) {
+                $featureIds = $this->keepSharedFeatures($featureIds, $moduleIds, $tree);
+            }
+
             $values = ['archived_at' => $archive ? now() : null, 'updated_by' => Auth::id(), 'updated_at' => now()];
 
             Module::query()->whereKey($moduleIds)->update($values);
@@ -81,5 +85,39 @@ final class ArchiveCatalogItem
             $seen[$key] = $restored;
             $this->ensureUniqueName->handle($restored->name);
         }
+    }
+
+    /**
+     * A feature of the archived subtree that also appears in an active module elsewhere stays
+     * active: that module becomes its main module (RG-16).
+     *
+     * @param  list<int>  $featureIds
+     * @param  list<int>  $archivedModuleIds
+     * @return list<int> features to archive
+     */
+    private function keepSharedFeatures(array $featureIds, array $archivedModuleIds, CatalogTree $tree): array
+    {
+        $toArchive = [];
+
+        foreach ($featureIds as $featureId) {
+            $elsewhere = array_values(array_filter(
+                $tree->otherModuleIds($featureId),
+                fn (int $moduleId): bool => ! in_array($moduleId, $archivedModuleIds, true) && ! ($tree->modules[$moduleId]['archived'] ?? true),
+            ));
+
+            if ($elsewhere === []) {
+                $toArchive[] = $featureId;
+
+                continue;
+            }
+
+            DB::table('module_feature')->where('feature_id', $featureId)->where('module_id', $elsewhere[0])->delete();
+            $feature = Feature::query()->findOrFail($featureId);
+            $feature->module()->associate($elsewhere[0]);
+            $feature->save();
+            $this->positions->insert($feature, null);
+        }
+
+        return $toArchive;
     }
 }

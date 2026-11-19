@@ -47,7 +47,9 @@ php artisan catalog:merge-duplicates --force  # fusionne et supprime les doublon
 php artisan migrate                           # pose ensuite la contrainte d'unicité
 ```
 
-Chaque fusion transfère à l'élément conservé les rattachements, règles métier, problèmes, historiques, sous-éléments et étapes de workflow, puis supprime le doublon ; elle est tracée dans la table `catalog_merges`. Les paires module/fonctionnalité de même nom sont seulement signalées : convertissez l'un des deux avant de fusionner.
+Une fonctionnalité n'existe qu'une fois mais peut apparaître dans plusieurs modules : dans la saisie rapide, « Ajouter ici » la lie au module en cours au lieu d'en créer une copie, et sa fiche liste ses modules (principal et autres). Un sous-module et une fonctionnalité de même nom se réunissent depuis l'écran « Doublons » (bouton « Réunir ») ou avec la commande ci-dessus.
+
+Chaque fusion transfère à l'élément conservé les rattachements, règles métier, problèmes, historiques, sous-éléments et étapes de workflow, puis supprime le doublon ; elle est tracée dans la table `catalog_merges`. Un module racine qui porte le nom d'une fonctionnalité est seulement signalé : il ne peut pas devenir une fonctionnalité.
 
 ## Rapports (livrables DTI)
 

@@ -3,9 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Actions\Catalog\MergeCatalogItems;
+use App\Actions\Catalog\ReuniteSubmoduleWithFeature;
 use App\Models\Feature;
 use App\Models\Module;
 use App\Queries\CatalogDuplicates;
+use DomainException;
 use Illuminate\Console\Command;
 
 /**
@@ -18,7 +20,7 @@ class MergeCatalogDuplicates extends Command
 
     protected $description = 'Fusionner et supprimer les doublons du catalogue (modules, sous-modules, fonctionnalités)';
 
-    public function handle(CatalogDuplicates $duplicates, MergeCatalogItems $merge): int
+    public function handle(CatalogDuplicates $duplicates, MergeCatalogItems $merge, ReuniteSubmoduleWithFeature $reunite): int
     {
         $groups = $duplicates->mergeableGroups();
         $crossKind = $duplicates->crossKindGroups();
@@ -62,6 +64,27 @@ class MergeCatalogDuplicates extends Command
         }
 
         foreach ($crossKind as $group) {
+            $modules = array_values(array_filter($group['items'], fn (array $entry): bool => $entry['item'] instanceof Module));
+            $features = array_values(array_filter($group['items'], fn (array $entry): bool => $entry['item'] instanceof Feature));
+
+            if (count($modules) === 1 && count($features) === 1) {
+                /** @var Module $module */
+                $module = $modules[0]['item'];
+                /** @var Feature $feature */
+                $feature = $features[0]['item'];
+                $this->line(sprintf('<info>Réunir</info> « %s » : le sous-module %s %s devient la fonctionnalité %s %s', $feature->name, $module->displayCode(), $modules[0]['path'], $feature->displayCode(), $features[0]['path']));
+
+                if ($force) {
+                    try {
+                        $reunite->handle($module, $feature);
+                    } catch (DomainException $exception) {
+                        $this->warn('      → impossible : '.$exception->getMessage());
+                    }
+                }
+
+                continue;
+            }
+
             $this->warn(sprintf(
                 'À traiter à la main : « %s » est à la fois un module et une fonctionnalité (%s). Convertissez l’un des deux, puis fusionnez depuis l’écran « Doublons ».',
                 $group['items'][0]['item']->name,
@@ -69,7 +92,7 @@ class MergeCatalogDuplicates extends Command
             ));
         }
 
-        if (! $force && $groups !== []) {
+        if (! $force) {
             $this->newLine();
             $this->comment('Aperçu seulement. Relancez avec --force pour fusionner. Chaque fusion est tracée dans la table catalog_merges.');
         }

@@ -56,4 +56,14 @@ class Feature extends Model implements CatalogItem
     {
         return 'Fonctionnalité';
     }
+
+    /**
+     * Other modules the feature also appears under (RG-16); module() is its main module.
+     *
+     * @return BelongsToMany<Module, $this>
+     */
+    public function otherModules(): BelongsToMany
+    {
+        return $this->belongsToMany(Module::class, 'module_feature')->withPivot('position')->orderBy('modules.name');
+    }
 }

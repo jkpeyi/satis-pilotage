@@ -24,6 +24,10 @@ final class ConvertFeatureToSubmodule
 
     public function handle(Feature $feature): Module
     {
+        if ($feature->otherModules()->exists()) {
+            throw new DomainException('Cette fonctionnalité apparaît dans plusieurs modules : retirez-la des autres modules avant de la convertir en sous-module.');
+        }
+
         if ($feature->code !== null && Module::query()->where('code', $feature->code)->exists()) {
             throw new DomainException("Le code {$feature->code} est déjà utilisé par un module.");
         }

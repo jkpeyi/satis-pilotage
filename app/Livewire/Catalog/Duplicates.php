@@ -3,6 +3,7 @@
 namespace App\Livewire\Catalog;
 
 use App\Actions\Catalog\MergeCatalogItems;
+use App\Actions\Catalog\ReuniteSubmoduleWithFeature;
 use App\Models\Feature;
 use App\Models\Module;
 use App\Queries\CatalogDuplicates;
@@ -40,6 +41,31 @@ class Duplicates extends Component
         }
 
         $this->dispatch('notify', message: "« {$duplicate->name} » a été fusionné dans « {$kept->name} ».");
+    }
+
+    /**
+     * A sub-module and a feature with the same name become one feature, shown in both places (RG-16).
+     */
+    public function reunite(int $moduleId, int $featureId, ReuniteSubmoduleWithFeature $reunite): void
+    {
+        $module = Module::query()->active()->find($moduleId);
+        $feature = Feature::query()->active()->find($featureId);
+
+        if ($module === null || $feature === null) {
+            $this->dispatch('notify', message: 'Élément introuvable : la liste a peut-être changé.');
+
+            return;
+        }
+
+        try {
+            $reunite->handle($module, $feature);
+        } catch (DomainException $exception) {
+            $this->dispatch('notify', message: $exception->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('notify', message: "« {$feature->name} » ne fait plus qu’une fonctionnalité, présente dans les deux modules.");
     }
 
     public function render(CatalogDuplicates $duplicates): View

@@ -36,6 +36,11 @@
                             <x-ui.badge>Archivé</x-ui.badge>
                             <button type="button" wire:click="restoreExisting('{{ $suggestion['key'] }}')" class="font-medium text-brand-700 hover:underline">Restaurer</button>
                         @else
+                            @if ($suggestion['type'] === 'feature' && $draft['parent_id'] !== null)
+                                <button type="button" wire:click="linkExistingHere('{{ $suggestion['key'] }}')"
+                                    title="La même fonctionnalité apparaîtra aussi dans ce module, sans copie."
+                                    class="font-medium text-brand-700 hover:underline">Ajouter ici</button>
+                            @endif
                             @if ($suggestion['type'] === 'module' || $draft['parent_id'] !== null)
                                 <button type="button" wire:click="moveExistingHere('{{ $suggestion['key'] }}')"
                                     wire:confirm="Déplacer « {{ $suggestion['name'] }} » ici, avec ses sous-éléments et ses rattachements ?"

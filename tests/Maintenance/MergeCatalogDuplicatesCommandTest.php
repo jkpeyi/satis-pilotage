@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 beforeEach(function () {
     Artisan::call('migrate:fresh');
-    Artisan::call('migrate:rollback', ['--step' => 1]);
+    Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_11_23_000200_add_unique_active_names_to_catalog_tables.php']);
 });
 
 afterEach(function () {
@@ -39,12 +39,15 @@ it('previews, then merges duplicates so that the uniqueness migration can run', 
     $this->artisan('catalog:merge-duplicates')
         ->expectsOutputToContain('Module « Crédit » : on garde')
         ->expectsOutputToContain('fusionne et supprime')
-        ->expectsOutputToContain('« Rachat » est à la fois un module et une fonctionnalité')
+        ->expectsOutputToContain('Réunir « Rachat » : le sous-module')
         ->expectsOutputToContain('Aperçu seulement')
         ->assertSuccessful();
     expect(Module::query()->count())->toBe(3);
 
-    $this->artisan('catalog:merge-duplicates', ['--force' => true])->assertSuccessful();
+    // "Rachat" is a root module: it cannot become a feature, the command says so and goes on.
+    $this->artisan('catalog:merge-duplicates', ['--force' => true])
+        ->expectsOutputToContain('impossible : Un module racine')
+        ->assertSuccessful();
 
     expect(Module::query()->where('name_key', 'credit')->count())->toBe(1)
         ->and(Feature::query()->where('name_key', 'simulation')->count())->toBe(1)

@@ -7,10 +7,13 @@ use App\Actions\Catalog\ConvertFeatureToSubmodule;
 use App\Actions\Catalog\ConvertSubmoduleToFeature;
 use App\Actions\Catalog\CreateFeature;
 use App\Actions\Catalog\CreateModule;
+use App\Actions\Catalog\LinkFeatureToModule;
 use App\Actions\Catalog\MergeCatalogItems;
 use App\Actions\Catalog\MoveFeature;
 use App\Actions\Catalog\MoveModule;
 use App\Actions\Catalog\SaveCatalogItem;
+use App\Actions\Catalog\SetFeatureMainModule;
+use App\Actions\Catalog\UnlinkFeatureFromModule;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Implementations\DetachCatalogItems;
 use App\Exceptions\DetachRequiresConfirmation;
@@ -76,6 +79,9 @@ class Index extends Component
 
     /** "module:12" or "feature:34": the item the selected one is merged into. */
     public string $mergeTarget = '';
+
+    /** Module to add to the selected feature's other modules (RG-16). */
+    public string $linkModuleId = '';
 
     public function mount(): void
     {
@@ -232,6 +238,31 @@ class Index extends Component
         $this->dispatch('notify', message: "« {$item->name} » a été déplacé ici.");
     }
 
+    /**
+     * The typed feature already exists under another module: make it appear here too (RG-16).
+     */
+    public function linkExistingHere(string $key, LinkFeatureToModule $linkFeatureToModule): void
+    {
+        $item = $this->resolve($key);
+        $parentId = $this->draft['parent_id'] ?? null;
+
+        if (! $item instanceof Feature || $parentId === null) {
+            return;
+        }
+
+        try {
+            $linkFeatureToModule->handle($item, Module::query()->findOrFail($parentId));
+        } catch (DomainException $exception) {
+            $this->addError('draftName', $exception->getMessage());
+
+            return;
+        }
+
+        $this->draftName = '';
+        $this->resetValidation('draftName');
+        $this->dispatch('notify', message: "« {$item->name} » apparaît maintenant aussi ici.");
+    }
+
     public function restoreExisting(string $key, ArchiveCatalogItem $archiveCatalogItem): void
     {
         $item = $this->resolve($key);
@@ -327,6 +358,52 @@ class Index extends Component
             $this->select(($converted instanceof Module ? 'module:' : 'feature:').$converted->id);
             $this->dispatch('notify', message: 'Élément converti. Ses rattachements, règles, problèmes et historiques sont conservés.');
         }
+    }
+
+    public function linkModule(LinkFeatureToModule $linkFeatureToModule): void
+    {
+        $item = $this->selectedItem();
+        if (! $item instanceof Feature || $this->linkModuleId === '') {
+            return;
+        }
+
+        try {
+            $linkFeatureToModule->handle($item, Module::query()->findOrFail((int) $this->linkModuleId));
+        } catch (DomainException $exception) {
+            $this->addError('linkModuleId', $exception->getMessage());
+
+            return;
+        }
+
+        $this->linkModuleId = '';
+        $this->dispatch('notify', message: 'Module ajouté.');
+    }
+
+    public function unlinkModule(int $moduleId, UnlinkFeatureFromModule $unlinkFeatureFromModule): void
+    {
+        $item = $this->selectedItem();
+        if ($item instanceof Feature) {
+            $unlinkFeatureFromModule->handle($item, Module::query()->findOrFail($moduleId));
+            $this->dispatch('notify', message: 'Module retiré.');
+        }
+    }
+
+    public function makeMainModule(int $moduleId, SetFeatureMainModule $setFeatureMainModule): void
+    {
+        $item = $this->selectedItem();
+        if (! $item instanceof Feature) {
+            return;
+        }
+
+        try {
+            $setFeatureMainModule->handle($item, Module::query()->findOrFail($moduleId));
+        } catch (DomainException $exception) {
+            $this->addError('linkModuleId', $exception->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('notify', message: 'Module principal changé.');
     }
 
     public function startMerge(): void
@@ -435,6 +512,7 @@ class Index extends Component
             'availableVersions' => $item !== null ? $this->availableVersions($item) : collect(),
             'products' => Product::query()->whereNull('archived_at')->orderBy('name')->pluck('name', 'id'),
             'path' => $item !== null ? $this->path($item) : [],
+            'moduleLinks' => $item instanceof Feature ? $this->moduleLinks($item, $tree) : null,
             'draftSuggestions' => $this->draft !== null ? app(CatalogSearch::class)->search($this->draftName, 6) : [],
             'mergeCandidates' => $this->showMerge && $item !== null ? $this->mergeCandidates($item) : [],
             'mergePreview' => $this->showMerge && $item !== null && $this->mergeTarget !== '' ? $this->mergePreview($item) : null,
@@ -475,6 +553,35 @@ class Index extends Component
             'moving' => $versionIds->count() - $common,
             'common' => $common,
             'children' => $item instanceof Module ? $item->children()->count() + $item->features()->count() : 0,
+        ];
+    }
+
+    /**
+     * Main module and other modules of a feature (RG-16), with the modules it can still be added to.
+     *
+     * @return array{main: string, others: array<int, string>, options: array<int, string>}
+     */
+    private function moduleLinks(Feature $feature, CatalogTree $tree): array
+    {
+        $label = fn (int $moduleId): string => implode(' › ', array_map(
+            fn (int $id): string => $tree->modules[$id]['name'] ?? '?',
+            [...array_reverse($tree->ancestorModuleIds($moduleId)), $moduleId],
+        ));
+        $others = $feature->otherModules()->pluck('modules.id')->map(fn ($id): int => (int) $id)->all();
+        $taken = [$feature->module_id, ...$others];
+
+        $options = [];
+        foreach ($tree->modules as $id => $module) {
+            if (! $module['archived'] && ! in_array($id, $taken, true)) {
+                $options[$id] = $label($id);
+            }
+        }
+        asort($options);
+
+        return [
+            'main' => $label($feature->module_id),
+            'others' => collect($others)->mapWithKeys(fn (int $id): array => [$id => $label($id)])->all(),
+            'options' => $options,
         ];
     }
 

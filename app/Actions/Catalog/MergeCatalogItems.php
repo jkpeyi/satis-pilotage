@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\DB;
  *   rules, issues and status history move to the remaining one (the active one, the kept item's
  *   when both are), an unknown status takes the duplicate's (with a history row, RG-06), and
  *   deviations and notes are put together.
- * - Workflow steps, product tags, the catalog code and the standard description follow.
+ * - Workflow steps, product tags, the catalog code and the standard description follow, and so do
+ *   the other modules a feature appears under (RG-16): a duplicate feature's modules become the
+ *   kept feature's other modules.
  */
 final class MergeCatalogItems
 {
@@ -60,10 +62,11 @@ final class MergeCatalogItems
             }
 
             $column = $duplicate instanceof Module ? 'module_id' : 'feature_id';
-            $this->mergeImplementations($column, (int) $duplicate->getKey(), (int) $kept->getKey(), $user, $summary);
+            $this->mergeImplementations($column, (int) $duplicate->getKey(), $column, (int) $kept->getKey(), $user, $summary);
 
-            if ($duplicate instanceof Feature) {
+            if ($duplicate instanceof Feature && $kept instanceof Feature) {
                 $summary['steps_moved'] = DB::table('workflow_steps')->where('feature_id', $duplicate->id)->update(['feature_id' => $kept->id]);
+                $this->moveFeatureModules($duplicate, $kept);
             }
 
             $kept->products()->syncWithoutDetaching($duplicate->products()->pluck('products.id')->all());
@@ -118,28 +121,75 @@ final class MergeCatalogItems
         $nextFeature = (int) Feature::query()->where('module_id', $kept->id)->max('position');
         foreach (Feature::query()->where('module_id', $duplicate->id)->orderBy('position')->get() as $feature) {
             $feature->forceFill(['module_id' => $kept->id, 'position' => ++$nextFeature])->save();
+            DB::table('module_feature')->where('feature_id', $feature->id)->where('module_id', $kept->id)->delete();
             $moved++;
         }
+
+        // Features shared into the duplicate are now shared into the kept module (RG-16).
+        foreach (DB::table('module_feature')->where('module_id', $duplicate->id)->pluck('feature_id') as $featureId) {
+            $alreadyThere = Feature::query()->whereKey($featureId)->where('module_id', $kept->id)->exists()
+                || DB::table('module_feature')->where('module_id', $kept->id)->where('feature_id', $featureId)->exists();
+            if (! $alreadyThere) {
+                $this->linkFeature((int) $featureId, $kept->id);
+                $moved++;
+            }
+        }
+        DB::table('module_feature')->where('module_id', $duplicate->id)->delete();
 
         return $moved;
     }
 
     /**
-     * @param  'module_id'|'feature_id'  $column
+     * The duplicate feature's main and other modules become the kept feature's other modules.
+     */
+    private function moveFeatureModules(Feature $duplicate, Feature $kept): void
+    {
+        $moduleIds = [$duplicate->module_id, ...DB::table('module_feature')->where('feature_id', $duplicate->id)->pluck('module_id')->map(fn ($id): int => (int) $id)->all()];
+        DB::table('module_feature')->where('feature_id', $duplicate->id)->delete();
+
+        foreach (array_unique($moduleIds) as $moduleId) {
+            $alreadyThere = $moduleId === $kept->module_id
+                || DB::table('module_feature')->where('feature_id', $kept->id)->where('module_id', $moduleId)->exists();
+            if (! $alreadyThere && Module::query()->active()->whereKey($moduleId)->exists()) {
+                $this->linkFeature($kept->id, $moduleId);
+            }
+        }
+    }
+
+    public function linkFeature(int $featureId, int $moduleId): void
+    {
+        DB::table('module_feature')->insert([
+            'module_id' => $moduleId,
+            'feature_id' => $featureId,
+            'position' => (int) DB::table('module_feature')->where('module_id', $moduleId)->max('position') + 1,
+            'created_by' => Auth::id(),
+            'created_at' => now(),
+        ]);
+    }
+
+    /**
+     * Moves the implementations of one catalog item to another; when a version has both, the two
+     * implementations are merged. Also used to reunite a sub-module with a feature (module_id to feature_id).
+     *
+     * @param  'module_id'|'feature_id'  $fromColumn
+     * @param  'module_id'|'feature_id'  $toColumn
      * @param  array<string, int>  $summary
      */
-    private function mergeImplementations(string $column, int $duplicateId, int $keptId, ?User $user, array &$summary): void
+    public function mergeImplementations(string $fromColumn, int $duplicateId, string $toColumn, int $keptId, ?User $user, array &$summary): void
     {
-        $duplicates = Implementation::query()->where($column, $duplicateId)->get();
-        $keptByVersion = Implementation::query()->where($column, $keptId)
+        $duplicates = Implementation::query()->where($fromColumn, $duplicateId)->get();
+        $keptByVersion = Implementation::query()->where($toColumn, $keptId)
             ->whereIn('version_id', $duplicates->pluck('version_id'))->get()->keyBy('version_id');
+        $retarget = fn (Implementation $implementation): bool => $implementation->forceFill(
+            $fromColumn === $toColumn ? [$toColumn => $keptId] : [$fromColumn => null, $toColumn => $keptId]
+        )->save();
 
         foreach ($duplicates as $implementation) {
             /** @var Implementation|null $other */
             $other = $keptByVersion->get($implementation->version_id);
 
             if ($other === null) {
-                $implementation->forceFill([$column => $keptId])->save();
+                $retarget($implementation);
                 $summary['implementations_moved']++;
 
                 continue;
@@ -172,8 +222,8 @@ final class MergeCatalogItems
                 $this->changeStatus->handle([$survivor->id], $loserStatus, $user, 'Reprise de l’état du doublon fusionné.');
             }
 
-            if ($survivor->getAttribute($column) !== $keptId) {
-                $survivor->refresh()->forceFill([$column => $keptId])->save();
+            if ($survivor->getAttribute($toColumn) !== $keptId) {
+                $retarget($survivor->refresh());
             }
 
             $summary['implementations_merged']++;

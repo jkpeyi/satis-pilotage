@@ -77,4 +77,14 @@ class Module extends Model implements CatalogItem
     {
         return $this->isSubmodule() ? 'Sous-module' : 'Module';
     }
+
+    /**
+     * Features whose main module is elsewhere but which also appear under this module (RG-16).
+     *
+     * @return BelongsToMany<Feature, $this>
+     */
+    public function sharedFeatures(): BelongsToMany
+    {
+        return $this->belongsToMany(Feature::class, 'module_feature')->withPivot('position')->orderByPivot('position');
+    }
 }

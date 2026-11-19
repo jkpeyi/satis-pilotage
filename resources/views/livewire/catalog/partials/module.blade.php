@@ -52,6 +52,30 @@
                 </li>
             @endforeach
         </ul>
+        @if ($tree->sharedFeatureIds($moduleId) !== [])
+            {{-- Features whose main module is elsewhere (RG-16): shown here too, managed from the feature panel. --}}
+            <ul>
+                @foreach ($tree->sharedFeatureIds($moduleId) as $featureId)
+                    @php($feature = $tree->features[$featureId])
+                    <li wire:key="shared-{{ $moduleId }}-{{ $featureId }}">
+                        <div @class([
+                                'group flex items-center gap-1 rounded py-1 pr-2 text-sm',
+                                'bg-brand-50' => $selected === 'feature:'.$featureId,
+                                'hover:bg-slate-100' => $selected !== 'feature:'.$featureId,
+                                'opacity-50' => $feature['archived'],
+                            ]) style="padding-left: {{ ($depth + 1) * 1.25 }}rem">
+                            <span class="px-1 text-slate-200" aria-hidden="true">⋮⋮</span>
+                            <span class="w-4 text-center text-xs text-violet-500" aria-hidden="true">↗</span>
+                            <button type="button" wire:click="select('feature:{{ $featureId }}')" class="min-w-0 flex-1 truncate text-left text-slate-700"
+                                title="Fonctionnalité partagée : module principal {{ $tree->modules[$feature['module_id']]['name'] ?? '' }}">
+                                {{ $feature['name'] }}
+                            </button>
+                            <x-ui.badge color="violet">partagée</x-ui.badge>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
         @if ($draft !== null && $draft['parent_id'] === $moduleId)
             <ul>@include('livewire.catalog.partials.draft', ['depth' => $depth + 1])</ul>
         @endif
