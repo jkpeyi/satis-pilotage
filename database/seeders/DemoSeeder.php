@@ -19,6 +19,7 @@ use App\Enums\VerificationStatus;
 use App\Models\BusinessRule;
 use App\Models\Customer;
 use App\Models\Environment;
+use App\Models\Feature;
 use App\Models\Implementation;
 use App\Models\Issue;
 use App\Models\Module;
@@ -27,6 +28,7 @@ use App\Models\Release;
 use App\Models\Repository;
 use App\Models\Technology;
 use App\Models\Version;
+use App\Models\Workflow;
 use Illuminate\Database\Seeder;
 
 /**
@@ -156,5 +158,36 @@ class DemoSeeder extends Seeder
             'effort_days' => 0.5,
         ]);
         $security->implementations()->attach($implementationOf($versionA, 'Recherche')->id);
+
+        $this->seedWorkflow($versionA, $rule);
+    }
+
+    /**
+     * A business workflow whose steps point to catalog features, one of them with a rule (SPEC-001 L2).
+     */
+    private function seedWorkflow(Version $version, BusinessRule $penaltyRule): void
+    {
+        $workflow = Workflow::query()->create([
+            'product_id' => $version->product_id,
+            'name' => 'Octroi et suivi d\'un crédit',
+            'description' => 'De la simulation demandée par le client jusqu\'au suivi des remboursements.',
+        ]);
+
+        $feature = fn (string $name): ?int => Feature::query()->where('name', $name)->value('id');
+        $steps = [
+            ['Simulation de l\'offre', 'Conseiller', 'Simulation'],
+            ['Constitution du dossier', 'Conseiller', 'Montage du dossier'],
+            ['Décision', 'Comité de crédit', 'Comité de crédit'],
+            ['Suivi des échéances', 'Back-office', 'Échéancier'],
+            ['Recouvrement des retards', 'Recouvrement', 'Pénalités de retard'],
+        ];
+
+        foreach ($steps as $index => [$name, $actor, $featureName]) {
+            $step = $workflow->steps()->create(['position' => $index + 1, 'name' => $name, 'actor' => $actor, 'feature_id' => $feature($featureName)]);
+
+            if ($featureName === 'Pénalités de retard') {
+                $step->businessRules()->attach($penaltyRule->id);
+            }
+        }
     }
 }

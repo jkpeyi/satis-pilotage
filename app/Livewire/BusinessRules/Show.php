@@ -66,7 +66,7 @@ class Show extends Component
 
     public function render(): View
     {
-        $this->rule->load(['implementation.version.product', 'implementation.module', 'implementation.feature', 'originRule.implementation.version', 'creator', 'editor']);
+        $this->rule->load(['implementation.version.product', 'implementation.module', 'implementation.feature', 'originRule.implementation.version', 'workflowSteps.workflow', 'creator', 'editor']);
         $originId = $this->rule->origin_rule_id ?? $this->rule->id;
 
         $family = BusinessRule::query()

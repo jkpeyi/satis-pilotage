@@ -51,4 +51,12 @@ class Product extends Model
     {
         return $this->belongsToMany(Feature::class);
     }
+
+    /**
+     * @return HasMany<Workflow, $this>
+     */
+    public function workflows(): HasMany
+    {
+        return $this->hasMany(Workflow::class);
+    }
 }

@@ -33,8 +33,12 @@
                             :disabled="$assessment->presence !== 'present'"
                             :hint="$assessment->presence !== 'present' ? 'Sans objet : l’élément n’est pas présent.' : null" />
                     </div>
-                    <x-ui.input label="Commentaire d'évaluation" wire:model="assessment.assessment_note"
-                        hint="Repris dans l'historique si l'état change." />
+                    <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+                        <x-ui.input label="Commentaire d'évaluation" wire:model="assessment.assessment_note"
+                            hint="Repris dans l'historique si l'état change." />
+                        <x-ui.select label="Vérification" wire:model="assessment.verification_status" :options="$verificationStatuses" required
+                            :hint="$implementation->verifier ? 'Par '.$implementation->verifier->name.' le '.$implementation->verified_at?->format('d/m/Y') : null" />
+                    </div>
                     <x-ui.textarea label="Écart" wire:model="assessment.deviation" rows="6"
                         hint="En quoi cette version diffère de la description standard. Markdown. Laisser vide si conforme." />
                     <x-ui.button type="submit">Enregistrer l'évaluation</x-ui.button>

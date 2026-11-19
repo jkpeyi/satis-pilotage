@@ -15,6 +15,7 @@ use App\Enums\IssueType;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
+use App\Enums\VerificationStatus;
 use App\Models\BusinessRule;
 use App\Models\Feature;
 use App\Models\Implementation;
@@ -61,12 +62,15 @@ it('RG-06 / RG-07: saves the assessment and records the status change with its n
         'status' => ImplementationStatus::Partial,
         'deviation' => 'Le **taux** est saisi en mensuel au lieu d\'annuel.',
         'assessment_note' => 'Vu avec le métier',
+        'verification_status' => VerificationStatus::Verified,
     ], $this->user);
 
     $this->implementation->refresh();
     expect($this->implementation->status)->toBe(ImplementationStatus::Partial)
         ->and($this->implementation->deviation)->toContain('mensuel')
         ->and($this->implementation->assessed_by)->toBe($this->user->id)
+        ->and($this->implementation->verification_status)->toBe(VerificationStatus::Verified)
+        ->and($this->implementation->verified_by)->toBe($this->user->id)
         ->and($this->implementation->statusChanges()->sole()->note)->toBe('Vu avec le métier');
 });
 

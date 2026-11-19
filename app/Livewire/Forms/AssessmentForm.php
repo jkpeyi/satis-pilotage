@@ -5,6 +5,7 @@ namespace App\Livewire\Forms;
 use App\Enums\FeatureOperation;
 use App\Enums\FeaturePresence;
 use App\Enums\ImplementationStatus;
+use App\Enums\VerificationStatus;
 use App\Models\Implementation;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -17,6 +18,8 @@ class AssessmentForm extends Form
     /** Only meaningful when the item is present. */
     public string $operation = 'not_tested';
 
+    public string $verification_status = 'to_verify';
+
     public string $deviation = '';
 
     public string $assessment_note = '';
@@ -25,6 +28,7 @@ class AssessmentForm extends Form
     {
         $this->presence = $implementation->status->presence()->value;
         $this->operation = $implementation->status->operation()->value;
+        $this->verification_status = $implementation->verification_status->value;
         $this->deviation = (string) $implementation->deviation;
         $this->assessment_note = (string) $implementation->assessment_note;
     }
@@ -51,6 +55,7 @@ class AssessmentForm extends Form
         return [
             'presence' => ['required', Rule::enum(FeaturePresence::class)],
             'operation' => ['required', Rule::enum(FeatureOperation::class)],
+            'verification_status' => ['required', Rule::enum(VerificationStatus::class)],
             'deviation' => ['nullable', 'string', 'max:20000'],
             'assessment_note' => ['nullable', 'string', 'max:2000'],
         ];
@@ -65,7 +70,7 @@ class AssessmentForm extends Form
     }
 
     /**
-     * @return array{status: ImplementationStatus, deviation: ?string, assessment_note: ?string}
+     * @return array{status: ImplementationStatus, deviation: ?string, assessment_note: ?string, verification_status: VerificationStatus}
      */
     public function data(): array
     {
@@ -75,6 +80,7 @@ class AssessmentForm extends Form
             'status' => ImplementationStatus::fromAxes(FeaturePresence::from($this->presence), FeatureOperation::from($this->operation)),
             'deviation' => trim($this->deviation) !== '' ? $this->deviation : null,
             'assessment_note' => trim($this->assessment_note) !== '' ? $this->assessment_note : null,
+            'verification_status' => VerificationStatus::from($this->verification_status),
         ];
     }
 }

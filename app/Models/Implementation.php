@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ImplementationStatus;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\HasUserstamps;
+use App\Models\Concerns\Verifiable;
 use App\Observers\ImplementationObserver;
 use Database\Factories\ImplementationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -26,13 +27,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Implementation extends Model
 {
     /** @use HasFactory<ImplementationFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasFactory, HasUserstamps, Verifiable;
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'status' => 'unknown',
+        'verification_status' => 'to_verify',
     ];
 
     /**

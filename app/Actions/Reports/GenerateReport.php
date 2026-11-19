@@ -6,14 +6,12 @@ use App\Models\ReportGeneration;
 use App\Models\User;
 use App\Reports\Contracts\ReportBuilder;
 use App\Reports\Rendering\DocxRenderer;
-use App\Reports\Rendering\ReportAnnexExport;
+use App\Reports\Rendering\XlsxAnnexRenderer;
 use App\Reports\ReportScope;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
-use Maatwebsite\Excel\Excel as ExcelFormat;
-use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 /**
@@ -23,7 +21,11 @@ use Throwable;
  */
 final class GenerateReport
 {
-    public function __construct(private readonly Container $container, private readonly DocxRenderer $docxRenderer) {}
+    public function __construct(
+        private readonly Container $container,
+        private readonly DocxRenderer $docxRenderer,
+        private readonly XlsxAnnexRenderer $xlsxRenderer,
+    ) {}
 
     public function handle(string $code, ReportScope $scope, User $author): ReportGeneration
     {
@@ -101,7 +103,7 @@ final class GenerateReport
                 );
 
                 $xlsxPath = "{$directory}/{$documentId}-annexe.xlsx";
-                Excel::store(new ReportAnnexExport($content, [
+                $this->xlsxRenderer->render($content, [
                     'Identifiant du document' => $documentId,
                     'Livrable' => $code.' — '.$definition['title'],
                     'Produit' => $content->product,
@@ -116,7 +118,7 @@ final class GenerateReport
                     'Complétude' => number_format($content->completeness(), 2, ',', ' ').' %',
                     'Valeurs à confirmer' => (string) $content->missingCount(),
                     'Empreinte des données (SHA-256)' => $dataHash,
-                ]), $xlsxPath, (string) config('reports.disk'), ExcelFormat::XLSX);
+                ], $disk->path($xlsxPath));
 
                 $generation->update([
                     'docx_path' => $docxPath,
