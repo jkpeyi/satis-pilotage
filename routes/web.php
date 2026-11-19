@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/versions/{version}', Versions\Show::class)->name('versions.show');
     Route::livewire('/versions/{version}/edit', Versions\Form::class)->name('versions.edit');
     Route::livewire('/versions/{version}/scope', Versions\Scope::class)->name('versions.scope');
+    Route::livewire('/versions/{version}/architecture', Versions\Architecture::class)->name('versions.architecture');
 
     Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
     Route::livewire('/comparison', ComparisonMatrix\Index::class)->name('comparison.index');

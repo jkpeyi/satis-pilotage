@@ -88,6 +88,14 @@ class Version extends Model
     }
 
     /**
+     * @return HasMany<Component, $this>
+     */
+    public function components(): HasMany
+    {
+        return $this->hasMany(Component::class);
+    }
+
+    /**
      * @return HasMany<Implementation, $this>
      */
     public function implementations(): HasMany

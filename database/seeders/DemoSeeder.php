@@ -7,8 +7,10 @@ use App\Actions\Catalog\CreateModule;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
+use App\Enums\ComponentType;
 use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
+use App\Enums\IntegrationProtocol;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueType;
 use App\Enums\RepositoryRole;
@@ -17,10 +19,12 @@ use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
 use App\Enums\VerificationStatus;
 use App\Models\BusinessRule;
+use App\Models\Component;
 use App\Models\Customer;
 use App\Models\Environment;
 use App\Models\Feature;
 use App\Models\Implementation;
+use App\Models\Integration;
 use App\Models\Issue;
 use App\Models\Module;
 use App\Models\Product;
@@ -57,7 +61,7 @@ class DemoSeeder extends Seeder
             'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-api', 'role' => RepositoryRole::Backend,
             'production_branch' => 'main', 'active_branches' => ['main', 'develop'], 'stack' => ['php' => '8.1.27', 'laravel' => '9.52.16'],
         ]);
-        Repository::query()->create([
+        $frontA = Repository::query()->create([
             'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-front', 'role' => RepositoryRole::Frontend,
             'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['react' => '17.0.2', 'node' => '16.20.0'],
         ]);
@@ -75,7 +79,9 @@ class DemoSeeder extends Seeder
         $saveDeployment->handle(['environment_id' => $productionA->id, 'release_id' => $release23->id, 'commit_sha' => null, 'deployed_at' => '2026-06-20 21:00', 'verification_status' => VerificationStatus::Verified, 'evidence' => 'Contrôle de la version affichée sur le serveur de production', 'notes' => null]);
         $saveDeployment->handle(['environment_id' => $testingA->id, 'release_id' => $release24->id, 'commit_sha' => null, 'deployed_at' => '2026-10-05 10:30', 'verification_status' => VerificationStatus::ToVerify, 'evidence' => null, 'notes' => null]);
 
-        foreach ([['php', '8.1', '2025-12-31'], ['php', '8.3', '2027-12-31'], ['laravel', '9', '2024-02-06'], ['laravel', '12', '2027-02-24'], ['node', '16', '2023-09-11']] as [$component, $cycle, $end]) {
+        $this->seedArchitecture($versionA, $apiA, $frontA);
+
+        foreach ([['php', '8.1', '2025-12-31'], ['php', '8.3', '2027-12-31'], ['laravel', '9', '2024-02-06'], ['laravel', '12', '2027-02-24'], ['node', '16', '2023-09-11'], ['mysql', '5.7', '2023-10-31'], ['mysql', '8.0', '2026-04-30']] as [$component, $cycle, $end]) {
             Technology::query()->create(['component' => $component, 'cycle' => $cycle, 'end_of_support' => $end]);
         }
 
@@ -189,5 +195,28 @@ class DemoSeeder extends Seeder
                 $step->businessRules()->attach($penaltyRule->id);
             }
         }
+    }
+
+    /**
+     * Components and integrations of an application (SPEC-001 L3).
+     */
+    private function seedArchitecture(Version $version, Repository $api, Repository $front): void
+    {
+        $component = fn (string $name, ComponentType $type, ?Repository $repository, ?string $technology, ?string $technologyVersion): Component => Component::query()->create([
+            'version_id' => $version->id, 'repository_id' => $repository?->id, 'name' => $name, 'type' => $type,
+            'technology' => $technology, 'technology_version' => $technologyVersion,
+        ]);
+
+        $backend = $component('API métier', ComponentType::Api, $api, 'Laravel', '9.52.16');
+        $web = $component('Front agences', ComponentType::Web, $front, 'React', '17.0.2');
+        $batch = $component('Batch de clôture journalière', ComponentType::Batch, $api, 'Laravel', '9.52.16');
+        $database = $component('Base de production', ComponentType::Database, null, 'MySQL', '5.7');
+        $backend->applyVerificationStatus(VerificationStatus::Verified);
+        $backend->save();
+
+        Integration::query()->create(['source_component_id' => $web->id, 'target_component_id' => $backend->id, 'protocol' => IntegrationProtocol::Rest, 'description' => 'Toutes les opérations des agences.']);
+        Integration::query()->create(['source_component_id' => $backend->id, 'target_component_id' => $database->id, 'protocol' => IntegrationProtocol::Database]);
+        Integration::query()->create(['source_component_id' => $backend->id, 'external_system' => 'Opérateur de paiement mobile', 'protocol' => IntegrationProtocol::Rest, 'description' => 'Décaissements et remboursements par mobile money.']);
+        Integration::query()->create(['source_component_id' => $batch->id, 'external_system' => 'Centrale des risques', 'protocol' => IntegrationProtocol::File, 'description' => 'Déclaration mensuelle des encours.']);
     }
 }
