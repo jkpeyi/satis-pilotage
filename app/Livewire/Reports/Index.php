@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reports;
 
+use App\Actions\Reports\DeleteReportGeneration;
 use App\Actions\Reports\GenerateReport;
 use App\Livewire\Forms\ReportForm;
 use App\Models\Customer;
@@ -26,6 +27,9 @@ class Index extends Component
 
     #[Url]
     public string $filterCode = '';
+
+    #[Url(except: false)]
+    public bool $showDeleted = false;
 
     public function mount(): void
     {
@@ -57,6 +61,21 @@ class Index extends Component
         ));
     }
 
+    public function delete(int $generationId, DeleteReportGeneration $deleteReportGeneration): void
+    {
+        $generation = ReportGeneration::query()->findOrFail($generationId);
+        $user = Auth::user();
+        abort_if($user === null, 403);
+
+        $deleteReportGeneration->handle($generation, $user);
+        $this->dispatch('notify', message: "Export {$generation->documentId()} supprimé.");
+    }
+
+    public function updatedShowDeleted(): void
+    {
+        $this->resetPage();
+    }
+
     public function render(): View
     {
         /** @var array<string, array{title: string, builder: ?string}> $deliverables */
@@ -71,8 +90,9 @@ class Index extends Component
                 ->orderBy('name')
                 ->pluck('name', 'id'),
             'generations' => ReportGeneration::query()
-                ->with('author')
+                ->with(['author', 'deleter'])
                 ->when($this->filterCode !== '', fn ($query) => $query->where('code', $this->filterCode))
+                ->when(! $this->showDeleted, fn ($query) => $query->whereNull('deleted_at'))
                 ->latest('id')
                 ->paginate(20),
         ]);

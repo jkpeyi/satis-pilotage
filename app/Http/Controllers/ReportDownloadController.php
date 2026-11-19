@@ -19,6 +19,8 @@ class ReportDownloadController extends Controller
             default => abort(404),
         };
 
+        abort_if($generation->isDeleted(), 410, 'Cet export a été supprimé.');
+
         $disk = Storage::disk((string) config('reports.disk'));
         abort_if($path === null || ! $disk->exists($path), 404);
         abort_if(hash_file('sha256', $disk->path($path)) !== $hash, 409, 'Le fichier ne correspond plus à son empreinte : il a été modifié après sa génération.');

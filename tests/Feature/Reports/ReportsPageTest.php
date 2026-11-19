@@ -76,3 +76,37 @@ it('refuses to serve a file that no longer matches its hash', function () {
         ->get(route('reports.download', [$generation, 'docx']))
         ->assertStatus(409);
 });
+
+it('deletes an export: files removed, hidden from the registry, number never reused', function () {
+    $this->actingAs($this->user);
+    $scope = new ReportScope($this->version->product_id);
+    $first = app(GenerateReport::class)->handle('L1', $scope, $this->user);
+
+    Livewire::test(Index::class)
+        ->assertSee($first->documentId())
+        ->call('delete', $first->id)
+        ->assertDispatched('notify', message: "Export {$first->documentId()} supprimé.")
+        ->assertDontSee($first->documentId())
+        ->set('showDeleted', true)
+        ->assertSee($first->documentId())
+        ->assertSee('Supprimé le');
+
+    $first->refresh();
+    expect($first->isDeleted())->toBeTrue()
+        ->and($first->deleted_by)->toBe($this->user->id)
+        ->and(Storage::disk('local')->exists((string) $first->docx_path))->toBeFalse()
+        ->and(Storage::disk('local')->exists((string) $first->xlsx_path))->toBeFalse();
+
+    $this->get(route('reports.download', [$first, 'docx']))->assertStatus(410);
+
+    $second = app(GenerateReport::class)->handle('L1', $scope, $this->user);
+    expect($second->version_number)->toBe(2)
+        ->and($second->documentId())->not->toBe($first->documentId());
+});
+
+it('still refuses any other change to a generated export', function () {
+    $generation = app(GenerateReport::class)->handle('L1', new ReportScope($this->version->product_id), $this->user);
+
+    expect(fn () => $generation->update(['title' => 'Autre', 'deleted_at' => now()]))->toThrow(LogicException::class)
+        ->and(fn () => $generation->delete())->toThrow(LogicException::class);
+});
