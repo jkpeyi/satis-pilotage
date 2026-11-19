@@ -45,7 +45,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Pivot historique | `Version::is_historical_pivot` (point of comparison, never a target) |
 | Responsable technique | `Version::technicalOwner` |
 | Statut de vérification | `VerificationStatus` (`Verifiable` concern: records who decided and when) |
-| Technologie, stack | `Technology`, `stack` |
+| Technologie, stack | `Technology`, `stack`. Cycles used by repositories, components and environments register themselves (`RegisterTechnologies`, without end-of-support date); `technologies:sync` brings in older entries |
 | Module, sous-module | `Module` (a sub-module is a `Module` with a `parent_id`) |
 | Fonctionnalité | `Feature` (`module_id` is its main module; `otherModules()` through `module_feature`, RG-16) |
 | Élément (generic) | `CatalogItem` interface, implemented by `Module` and `Feature` (not a table) |

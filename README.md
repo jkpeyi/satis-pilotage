@@ -57,6 +57,14 @@ L'écran « Rapports » génère les livrables du plan DTI (SPEC-001) à partir 
 
 Livrables exportables à ce jour : L1, L2 et L3. Les autres modèles sont en place et seront branchés au fil des lots. L'annexe XLSX est écrite en flux : un rapport de plusieurs dizaines de milliers de lignes reste sous 150 Mo de mémoire.
 
+## Technologies
+
+Les technologies saisies sur un dépôt (stack), un composant ou un environnement (moteur de base, version PHP) s'ajoutent automatiquement au référentiel « Technologies », sans date de fin de support : il ne reste qu'à la renseigner (filtre « Seulement les dates à renseigner »). Pour reprendre ce qui a été saisi avant cette fonction :
+
+```bash
+php artisan technologies:sync
+```
+
 ## Comptes
 
 Il n'y a pas d'inscription : les comptes sont créés en ligne de commande.
