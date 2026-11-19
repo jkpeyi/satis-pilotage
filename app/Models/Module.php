@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Contracts\CatalogItem;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\ModuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,7 +21,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Module extends Model implements CatalogItem
 {
     /** @use HasFactory<ModuleFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+
+    public const CODE_PREFIX = 'MOD-';
 
     /**
      * @return BelongsTo<Module, $this>

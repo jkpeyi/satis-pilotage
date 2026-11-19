@@ -85,6 +85,13 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
 - **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
 
+## Reports (SPEC-001 deliverables)
+
+- Deliverables L1–L8 are declared in `config/reports.php`. Templates are the DTI Word files in `resources/report-templates` (`{{…}}` variables); bump `template_version` when a template changes.
+- One builder per deliverable in `app/Reports/Builders`, implementing `ReportBuilder::build(ReportScope): ReportContent`: a `TextSection` or `TableSection` for every template variable. Builders only read data; `GenerateReport` freezes the snapshot, renders the DOCX and the XLSX annex and records the `ReportGeneration`.
+- Never fabricate data: a value the application does not hold stays empty and is shown "À confirmer". No secrets, banking identifiers or personal data in exports.
+- A `ReportGeneration` is immutable once its files are written; a new export is a new row.
+
 ## UI conventions
 
 - Full-page Livewire components are classes in `app/Livewire/<Area>/` (e.g. `Products\Index`, `Products\Form`, `Products\Show`), registered with `Route::livewire()`. Layout: `resources/views/layouts/app.blade.php` (`layouts::app`).

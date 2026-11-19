@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['implementation_id', 'origin_rule_id', 'title', 'description', 'source', 'status'])]
 class BusinessRule extends Model
 {
-    use Archivable, HasUserstamps;
+    use Archivable, HasDisplayCode, HasUserstamps;
 
     public const CODE_PREFIX = 'RM-';
 
@@ -39,14 +40,6 @@ class BusinessRule extends Model
             'source' => RuleSource::class,
             'status' => RuleStatus::class,
         ];
-    }
-
-    /**
-     * Code shown to users, e.g. RM-0042 (RG-13).
-     */
-    public function displayCode(): string
-    {
-        return sprintf('%s%04d', self::CODE_PREFIX, $this->id);
     }
 
     /**

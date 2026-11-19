@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EnvironmentType;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\EnvironmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -18,7 +19,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Environment extends Model
 {
     /** @use HasFactory<EnvironmentFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+
+    public const CODE_PREFIX = 'ENV-';
 
     /**
      * @return array<string, string>

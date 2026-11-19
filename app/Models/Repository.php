@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RepositoryRole;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\RepositoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -25,7 +26,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Repository extends Model
 {
     /** @use HasFactory<RepositoryFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+
+    public const CODE_PREFIX = 'DEP-';
 
     /**
      * @return array<string, string>

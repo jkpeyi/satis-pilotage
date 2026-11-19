@@ -35,6 +35,12 @@ Avant chaque livraison :
 composer check   # Pint, Larastan, tests (base satis_test)
 ```
 
+## Rapports (livrables DTI)
+
+L'écran « Rapports » génère les livrables du plan DTI (SPEC-001) à partir des données de l'application : un document Word rempli depuis le modèle de `resources/report-templates`, et une annexe XLSX avec les tableaux complets. Chaque export est figé (instantané des données, empreintes SHA-256) et conservé dans `storage/app/private/reports`. Les données absentes de l'application apparaissent « À confirmer ».
+
+Livrables exportables à ce jour : L1. Les autres modèles sont en place et seront branchés au fil des lots.
+
 ## Comptes
 
 Il n'y a pas d'inscription : les comptes sont créés en ligne de commande.
@@ -62,4 +68,4 @@ Mises à jour : `./deploy.sh` (branche `main` par défaut, ou `./deploy.sh autre
 
 Le HTTPS est attendu en frontal (reverse proxy Satisworld) ; le conteneur `web` écoute en HTTP sur `APP_PORT`.
 
-Sauvegardes : `docker/backup.sh`, à planifier dans la crontab de l'hôte (dump chiffré quotidien, conservé 30 jours). La procédure de restauration est en commentaire dans le script.
+Sauvegardes : `docker/backup.sh`, à planifier dans la crontab de l'hôte (dump chiffré quotidien et archive chiffrée des rapports générés, conservés 30 jours). La procédure de restauration est en commentaire dans le script.
