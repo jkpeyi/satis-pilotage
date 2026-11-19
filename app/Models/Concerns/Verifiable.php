@@ -26,9 +26,10 @@ trait Verifiable
     }
 
     /**
-     * Sets the status; a decision (verified or unverifiable) records the current user and time.
+     * Sets the status; a decision (verified or unverifiable) records who took it (default: the
+     * authenticated user) and when.
      */
-    public function applyVerificationStatus(VerificationStatus $status): void
+    public function applyVerificationStatus(VerificationStatus $status, ?int $userId = null): void
     {
         if ($this->exists && $this->getAttribute('verification_status') === $status) {
             return;
@@ -36,7 +37,7 @@ trait Verifiable
 
         $decided = $status !== VerificationStatus::ToVerify;
         $this->setAttribute('verification_status', $status);
-        $this->setAttribute('verified_by', $decided ? Auth::id() : null);
+        $this->setAttribute('verified_by', $decided ? ($userId ?? Auth::id()) : null);
         $this->setAttribute('verified_at', $decided ? now() : null);
     }
 

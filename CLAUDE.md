@@ -56,6 +56,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Écart | `deviation` |
 | Description standard | `standard_description` |
 | Règle métier | `BusinessRule` (displayed `RM-0042`) |
+| Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s) |
 | Problème | `Issue` (displayed `PB-0042`) |
 | Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |
 | Cartographie des écarts | `ComparisonMatrix` |
@@ -98,6 +99,7 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - One builder per deliverable in `app/Reports/Builders`, implementing `ReportBuilder::build(ReportScope): ReportContent`: a `TextSection` or `TableSection` for every template variable. Builders only read data; `GenerateReport` freezes the snapshot, renders the DOCX and the XLSX annex and records the `ReportGeneration`.
 - Never fabricate data: a value the application does not hold stays empty and is shown "À confirmer". No secrets, banking identifiers or personal data in exports.
 - A `ReportGeneration` is immutable once its files are written; a new export is a new row.
+- The XLSX annex is written by `XlsxStreamWriter` (streamed, constant memory), not by Laravel Excel: a report can hold tens of thousands of rows (ENF-06).
 
 ## UI conventions
 

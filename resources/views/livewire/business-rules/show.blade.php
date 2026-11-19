@@ -48,6 +48,21 @@
                 <x-ui.audit :record="$rule" class="mt-4" />
             </x-ui.card>
 
+            <x-ui.card title="Étapes de workflow">
+                @if ($rule->workflowSteps->isEmpty())
+                    <p class="text-sm text-slate-500">Aucune étape liée. Le lien se fait depuis la fiche d'un workflow.</p>
+                @else
+                    <ul class="space-y-2 text-sm">
+                        @foreach ($rule->workflowSteps as $step)
+                            <li wire:key="rule-step-{{ $step->id }}">
+                                <a href="{{ route('workflows.show', $step->workflow) }}" wire:navigate class="font-medium text-slate-900 hover:text-brand-700">{{ $step->workflow->name }}</a>
+                                <span class="text-slate-500">· étape {{ $step->position }} : {{ $step->name }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-ui.card>
+
             <x-ui.card title="Même règle dans d'autres versions">
                 @if ($family->isEmpty())
                     <p class="text-sm text-slate-500">Cette règle n'existe que dans cette version.</p>

@@ -194,7 +194,7 @@ it('caps long tables in the Word document and keeps every row in the XLSX annex'
     $spreadsheet = IOFactory::load(Storage::disk('local')->path($generation->xlsx_path));
     expect($spreadsheet->getSheetNames())->toBe(['Contrôle', 'Applications', 'Déploiements'])
         ->and($spreadsheet->getSheetByName('Applications')?->getHighestRow())->toBe(3)
-        ->and($spreadsheet->getSheetByName('Contrôle')?->getCell('B2')->getValue())->toBe($generation->documentId());
+        ->and($spreadsheet->getSheetByName('Contrôle')?->getCell('B2')->getFormattedValue())->toBe($generation->documentId());
 });
 
 it('refuses a deliverable that is not exportable yet', function () {

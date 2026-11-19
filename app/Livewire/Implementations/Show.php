@@ -12,6 +12,7 @@ use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
+use App\Enums\VerificationStatus;
 use App\Livewire\Concerns\EnumOptions;
 use App\Livewire\Forms\AssessmentForm;
 use App\Livewire\Forms\BusinessRuleForm;
@@ -117,7 +118,7 @@ class Show extends Component
 
     public function render(): View
     {
-        $this->implementation->load(['version.product', 'version.customer', 'module', 'feature', 'assessor', 'statusChanges.user']);
+        $this->implementation->load(['version.product', 'version.customer', 'module', 'feature', 'assessor', 'verifier', 'statusChanges.user']);
         $item = $this->implementation->catalogItem();
         $tree = CatalogTree::load(withArchived: true);
         $ancestorIds = $this->implementation->module_id !== null
@@ -132,6 +133,7 @@ class Show extends Component
             'knownIssues' => $this->knownIssuesElsewhere(),
             'presences' => $this->enumOptions(FeaturePresence::class),
             'operations' => $this->enumOptions(FeatureOperation::class),
+            'verificationStatuses' => $this->enumOptions(VerificationStatus::class),
             'sources' => $this->enumOptions(RuleSource::class),
             'ruleStatuses' => $this->enumOptions(RuleStatus::class),
             'issueTypes' => $this->enumOptions(IssueType::class),

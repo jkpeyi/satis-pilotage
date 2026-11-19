@@ -14,6 +14,7 @@ use App\Livewire\Products;
 use App\Livewire\Reports;
 use App\Livewire\Technologies;
 use App\Livewire\Versions;
+use App\Livewire\Workflows;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -43,6 +44,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
     Route::livewire('/comparison', ComparisonMatrix\Index::class)->name('comparison.index');
+    Route::livewire('/workflows', Workflows\Index::class)->name('workflows.index');
+    Route::livewire('/workflows/{workflow}', Workflows\Show::class)->name('workflows.show');
 
     Route::livewire('/implementations/{implementation}', Implementations\Show::class)->name('implementations.show');
     Route::livewire('/business-rules', BusinessRules\Index::class)->name('business-rules.index');

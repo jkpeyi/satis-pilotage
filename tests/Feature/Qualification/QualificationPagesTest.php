@@ -5,6 +5,7 @@ use App\Enums\ImplementationStatus;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueType;
 use App\Enums\RuleSource;
+use App\Enums\VerificationStatus;
 use App\Livewire\BusinessRules;
 use App\Livewire\Implementations;
 use App\Livewire\Issues;
@@ -58,11 +59,14 @@ it('EF-205: shows the standard description and saves the assessment', function (
         ->set('assessment.operation', 'defective')
         ->set('assessment.deviation', 'Le taux est mensuel.')
         ->set('assessment.assessment_note', 'Atelier du 13/11')
+        ->set('assessment.verification_status', 'verified')
         ->call('saveAssessment')
         ->assertHasNoErrors()
         ->assertDispatched('notify');
 
     expect($this->implementation->refresh()->status)->toBe(ImplementationStatus::Defective)
+        ->and($this->implementation->verification_status)->toBe(VerificationStatus::Verified)
+        ->and($this->implementation->verified_by)->not->toBeNull()
         ->and($this->implementation->deviation)->toBe('Le taux est mensuel.')
         ->and($this->implementation->statusChanges()->sole()->note)->toBe('Atelier du 13/11');
 });

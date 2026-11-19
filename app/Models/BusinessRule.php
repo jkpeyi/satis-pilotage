@@ -10,6 +10,7 @@ use App\Models\Concerns\HasUserstamps;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -74,5 +75,15 @@ class BusinessRule extends Model
     public function codeSnippets(): HasMany
     {
         return $this->hasMany(CodeSnippet::class);
+    }
+
+    /**
+     * Workflow steps this rule applies to (SPEC-001 L2); a rule may apply to several steps.
+     *
+     * @return BelongsToMany<WorkflowStep, $this>
+     */
+    public function workflowSteps(): BelongsToMany
+    {
+        return $this->belongsToMany(WorkflowStep::class);
     }
 }

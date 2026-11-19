@@ -10,13 +10,14 @@ use App\Models\Issue;
 use App\Models\Product;
 use App\Models\Release;
 use App\Models\Repository;
+use App\Models\Workflow;
 
 /**
- * Archives or restores a record (RG-12). Versions use ArchiveVersion, deployments ArchiveDeployment, catalog items ArchiveCatalogItem.
+ * Archives or restores a record (RG-12). Versions use ArchiveVersion, deployments ArchiveDeployment, workflow steps ArchiveWorkflowStep, catalog items ArchiveCatalogItem.
  */
 final class ArchiveRecord
 {
-    public function handle(Product|Customer|Repository|Release|Environment|BusinessRule|Issue|CodeSnippet $record, bool $archive = true): void
+    public function handle(Product|Customer|Repository|Release|Environment|BusinessRule|Issue|CodeSnippet|Workflow $record, bool $archive = true): void
     {
         $archive ? $record->archive() : $record->unarchive();
     }
