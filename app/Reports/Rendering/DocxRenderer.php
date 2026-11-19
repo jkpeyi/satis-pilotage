@@ -52,13 +52,35 @@ final class DocxRenderer
             $processor->setValue($variable, $this->clean($value));
         }
 
+        $images = [];
         foreach ($content->sections() as $variable => $section) {
-            $processor->replaceParagraph($variable, $section instanceof TableSection
-                ? $this->table($processor, $section)
-                : $this->text($section));
+            $xml = $section instanceof TableSection ? $this->table($processor, $section) : $this->text($section);
+
+            foreach ($content->figures($variable) as $figure) {
+                $placeholder = 'report_figure_'.count($images);
+                $xml .= $this->paragraph($figure['caption'], italic: true).'<w:p><w:r><w:t>{{'.$placeholder.'}}</w:t></w:r></w:p>';
+                $images[$placeholder] = $figure;
+            }
+
+            $processor->replaceParagraph($variable, $xml);
         }
 
-        $processor->saveAs($targetPath);
+        $temporaryFiles = [];
+        try {
+            foreach ($images as $placeholder => $figure) {
+                $file = tempnam(sys_get_temp_dir(), 'figure').'.png';
+                file_put_contents($file, $figure['png']);
+                $temporaryFiles[] = $file;
+                $processor->setImageValue($placeholder, ['path' => $file, 'width' => sprintf('%.1fcm', $figure['width_cm']), 'height' => '']);
+            }
+
+            $processor->saveAs($targetPath);
+        } finally {
+            foreach ($temporaryFiles as $file) {
+                @unlink($file);
+                @unlink(substr($file, 0, -4));
+            }
+        }
     }
 
     private function text(TextSection $section): string

@@ -11,6 +11,9 @@ final class ReportContent
     /** @var array<string, TextSection|TableSection> */
     private array $sections = [];
 
+    /** @var array<string, list<array{caption: string, png: string, width_cm: float}>> images shown after a variable's content */
+    private array $figures = [];
+
     public function __construct(
         public readonly string $product,
         public readonly string $client,
@@ -23,6 +26,24 @@ final class ReportContent
         $this->sections[$variable] = $section;
 
         return $this;
+    }
+
+    /**
+     * Adds an image (PNG) after the content of a variable, e.g. a workflow diagram after the table.
+     */
+    public function addFigure(string $variable, string $caption, string $png, float $widthCm): self
+    {
+        $this->figures[$variable][] = ['caption' => $caption, 'png' => $png, 'width_cm' => $widthCm];
+
+        return $this;
+    }
+
+    /**
+     * @return list<array{caption: string, png: string, width_cm: float}>
+     */
+    public function figures(string $variable): array
+    {
+        return $this->figures[$variable] ?? [];
     }
 
     /**
@@ -93,9 +114,13 @@ final class ReportContent
                 : ['type' => 'text', 'blocks' => $section->blocks()];
         }
 
+        // Images derive from the data above: only their captions are part of the snapshot.
+        $figures = array_map(fn (array $list): array => array_column($list, 'caption'), $this->figures);
+
         return [
             'control' => ['product' => $this->product, 'client' => $this->client, 'repository' => $this->repository, 'commit' => $this->commit],
             'sections' => $sections,
+            ...($figures !== [] ? ['figures' => $figures] : []),
         ];
     }
 }

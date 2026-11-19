@@ -7,6 +7,8 @@ use App\Actions\Workflows\ArchiveWorkflowStep;
 use App\Actions\Workflows\MoveWorkflowStep;
 use App\Actions\Workflows\SaveWorkflow;
 use App\Actions\Workflows\SaveWorkflowStep;
+use App\Enums\WorkflowStepKind;
+use App\Livewire\Concerns\EnumOptions;
 use App\Livewire\Forms\WorkflowForm;
 use App\Livewire\Forms\WorkflowStepForm;
 use App\Models\BusinessRule;
@@ -14,6 +16,7 @@ use App\Models\Product;
 use App\Models\Workflow;
 use App\Models\WorkflowStep;
 use App\Queries\ProductCatalog;
+use App\Queries\WorkflowGraph;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -24,6 +27,8 @@ use Livewire\Component;
  */
 class Show extends Component
 {
+    use EnumOptions;
+
     public Workflow $workflow;
 
     public WorkflowForm $form;
@@ -75,12 +80,38 @@ class Show extends Component
         $this->stepForm->business_rule_ids = array_values(array_intersect($this->stepForm->business_rule_ids, $offered));
     }
 
+    public function updatedStepFormKind(): void
+    {
+        $this->stepForm->normalizeTransitions();
+
+        if ($this->stepForm->kind === 'decision' && count($this->stepForm->transitions) < 2) {
+            while (count($this->stepForm->transitions) < 2) {
+                $this->stepForm->addTransition();
+            }
+            foreach (['Oui', 'Non'] as $index => $default) {
+                if (($this->stepForm->transitions[$index]['label'] ?? '') === '') {
+                    $this->stepForm->transitions[$index]['label'] = $default;
+                }
+            }
+        }
+    }
+
+    public function addTransition(): void
+    {
+        $this->stepForm->addTransition();
+    }
+
+    public function removeTransition(int $index): void
+    {
+        $this->stepForm->removeTransition($index);
+    }
+
     public function saveStep(SaveWorkflowStep $saveStep): void
     {
         try {
             $saveStep->handle($this->stepForm->data(), $this->stepForm->step);
         } catch (DomainException $exception) {
-            $this->addError('stepForm.business_rule_ids', $exception->getMessage());
+            $this->addError('stepForm.save', $exception->getMessage());
 
             return;
         }
@@ -110,8 +141,16 @@ class Show extends Component
             ->when(! $this->showArchivedSteps, fn ($query) => $query->whereNull('archived_at'))
             ->get();
 
+        $graph = WorkflowGraph::for($this->workflow);
+
         return view('livewire.workflows.show', [
             'steps' => $steps,
+            'graph' => $graph,
+            'diagram' => $graph->layout(),
+            'kinds' => $this->enumOptions(WorkflowStepKind::class),
+            'targetOptions' => $this->workflow->steps()->active()
+                ->when($this->stepForm->step !== null && $this->stepForm->kind === 'action', fn ($query) => $query->whereKeyNot($this->stepForm->step?->id))
+                ->get()->mapWithKeys(fn (WorkflowStep $step): array => [$step->id => $step->position.'. '.$step->name]),
             'featureLabels' => $steps->pluck('feature_id')->filter()->unique()
                 ->mapWithKeys(fn (int $featureId): array => [$featureId => $catalog->featureLabel($featureId)]),
             'featureOptions' => collect($catalog->featureIds($this->workflow->product_id))

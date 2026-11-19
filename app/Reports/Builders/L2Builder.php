@@ -8,16 +8,19 @@ use App\Enums\ImplementationStatus;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\VerificationStatus;
+use App\Enums\WorkflowStepKind;
 use App\Models\Feature;
 use App\Models\User;
 use App\Models\Version;
 use App\Models\Workflow;
 use App\Models\WorkflowStep;
 use App\Queries\ProductCatalog;
+use App\Queries\WorkflowGraph;
 use App\Reports\Content\ReportContent;
 use App\Reports\Content\TableSection;
 use App\Reports\Content\TextSection;
 use App\Reports\Contracts\ReportBuilder;
+use App\Reports\Rendering\WorkflowDiagramPng;
 use App\Reports\ReportScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +37,8 @@ use Illuminate\Support\Str;
  */
 final class L2Builder implements ReportBuilder
 {
+    public function __construct(private readonly WorkflowDiagramPng $diagramRenderer) {}
+
     private const TEXT_LIMIT = 400;
 
     private const GAP_LIST_LIMIT = 100;
@@ -75,13 +80,19 @@ final class L2Builder implements ReportBuilder
             client: $customer !== null ? sprintf('%s · %s', $customer->displayCode(), $customer->name) : 'Tous les clients',
         );
 
-        return $content
+        $content
             ->set('functional.scope', $this->scopeSection($catalog, $featureIds, $versions, $implementations, $workflows))
             ->set('features.table', $this->featuresTable($catalog, $featureIds, $features))
             ->set('feature_implementations.table', $this->implementationsTable($catalog, $featureIds, $versions, $implementations, $verifiers))
             ->set('workflows.table', $this->workflowsTable($catalog, $workflows))
             ->set('functional.gaps', $this->gaps($catalog, $versions, $implementations, $product->id))
             ->set('functional.source_references', $this->sourceReferences($versions));
+
+        foreach ($workflows as $workflow) {
+            $this->addDiagram($content, $workflow);
+        }
+
+        return $content;
     }
 
     /**
@@ -215,6 +226,24 @@ final class L2Builder implements ReportBuilder
     }
 
     /**
+     * Diagram of a workflow with its conditions (RG-17), after the workflows table.
+     */
+    private function addDiagram(ReportContent $content, Workflow $workflow): void
+    {
+        $layout = WorkflowGraph::for($workflow)->layout();
+        if ($layout['nodes'] === []) {
+            return;
+        }
+
+        $content->addFigure(
+            'workflows.table',
+            sprintf('Schéma du workflow %s · %s', $workflow->displayCode(), $workflow->name),
+            $this->diagramRenderer->render($layout),
+            round(min(16.0, $layout['width'] * 0.0265), 1),
+        );
+    }
+
+    /**
      * @param  Collection<int, Workflow>  $workflows
      */
     private function workflowsTable(ProductCatalog $catalog, Collection $workflows): TableSection
@@ -223,19 +252,30 @@ final class L2Builder implements ReportBuilder
             ->column('workflow_id', 'Workflow')
             ->column('workflow', 'Intitulé')
             ->column('step', 'Étape')
+            ->column('kind', 'Type', required: false)
+            ->column('exits', 'Sorties (si / sinon)', required: false)
             ->column('actor', 'Acteur', required: false)
             ->column('feature', 'Fonctionnalité')
             ->column('business_rules', 'Règles métier', required: false);
 
         foreach ($workflows as $workflow) {
+            $graph = WorkflowGraph::for($workflow);
+
             foreach ($workflow->steps as $step) {
                 /** @var WorkflowStep $step */
                 $table->row([
                     'workflow_id' => $workflow->displayCode(),
                     'workflow' => $workflow->name,
                     'step' => $step->position.'. '.$step->name,
+                    'kind' => $step->kind->label(),
+                    'exits' => $graph->exitsLabel($step->id),
                     'actor' => $step->actor,
-                    'feature' => $step->feature !== null ? $step->feature->displayCode().' · '.$catalog->featureLabel($step->feature_id) : null,
+                    // A decision or an end is not realized by a feature.
+                    'feature' => match (true) {
+                        $step->feature !== null => $step->feature->displayCode().' · '.$catalog->featureLabel($step->feature_id),
+                        $step->kind !== WorkflowStepKind::Action => 'Sans objet',
+                        default => null,
+                    },
                     'business_rules' => $step->businessRules->sortBy('id')->map(fn ($rule): string => $rule->displayCode().' '.$rule->title)->implode("\n"),
                 ]);
             }

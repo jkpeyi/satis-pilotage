@@ -57,7 +57,8 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Description standard | `standard_description` |
 | Règle métier | `BusinessRule` (displayed `RM-0042`) |
 | Composant, intégration | `Component` (displayed `CMP-0001`, a technical part of a version), `Integration` (`INT-0001`, from a component to another component or to an `external_system`: exactly one target, CHECK) |
-| Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s) |
+| Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s; `kind` action, decision or end, RG-17) |
+| Sortie (si / sinon) | `WorkflowTransition` (from a step to a step of the same workflow, with its condition `label`); `WorkflowGraph` builds the graph, checks and diagram layout |
 | Problème | `Issue` (displayed `PB-0042`) |
 | Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |
 | Cartographie des écarts | `ComparisonMatrix` |
@@ -93,8 +94,9 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-12** Records are archived, not deleted. Detaching an item that has rules or issues requires confirmation.
 - **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
 - **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
-- **RG-16** A feature exists once in the catalog but may appear under several modules: `features.module_id` is its main module (its path in reports, the branch attached with it, RG-04), `module_feature` lists the other modules. It keeps one implementation per version wherever it is shown. Use `LinkFeatureToModule` rather than creating a copy; a sub-module and a feature describing the same thing are combined with `ReuniteSubmoduleWithFeature`. `CatalogTree::featureIds()` returns a module's own features only (each feature counted once in the matrix and reports); `sharedFeatureIds()` the features shared into it.
 - **RG-15** A name is unique across the whole catalog, modules, sub-modules and features together, among active items; case, accents and punctuation are ignored (`CatalogName::key`, `EnsureUniqueCatalogName`). Every name entry suggests existing items so that they are reused (moved here, attached) rather than duplicated. Duplicates are merged with `MergeCatalogItems` (everything moves to the kept item, the duplicate is deleted and logged in `catalog_merges`), from the « Doublons » screen or `php artisan catalog:merge-duplicates`.
+- **RG-16** A feature exists once in the catalog but may appear under several modules: `features.module_id` is its main module (its path in reports, the branch attached with it, RG-04), `module_feature` lists the other modules. It keeps one implementation per version wherever it is shown. Use `LinkFeatureToModule` rather than creating a copy; a sub-module and a feature describing the same thing are combined with `ReuniteSubmoduleWithFeature`. `CatalogTree::featureIds()` returns a module's own features only (each feature counted once in the matrix and reports); `sharedFeatureIds()` the features shared into it.
+- **RG-17** A workflow step is an action, a decision or an end. A decision has labelled exits (« Oui », « Non », possibly more, possibly back to an earlier step); an action has at most one exit and otherwise goes on to the next step in the order; an end has none. Exits lead to active steps of the same workflow. Incomplete decisions, unreachable steps and exits to archived steps are reported, not blocked. The diagram is drawn by the application (SVG on the page, PNG with GD and the bundled DejaVu font in L2): no diagram library.
 
 ## Reports (SPEC-001 deliverables)
 
