@@ -183,17 +183,30 @@ class DemoSeeder extends Seeder
         $steps = [
             ['Simulation de l\'offre', 'Conseiller', 'Simulation'],
             ['Constitution du dossier', 'Conseiller', 'Montage du dossier'],
-            ['Décision', 'Comité de crédit', 'Comité de crédit'],
+            ['Comité : crédit accordé ?', 'Comité de crédit', 'Comité de crédit', 'decision'],
             ['Suivi des échéances', 'Back-office', 'Échéancier'],
             ['Recouvrement des retards', 'Recouvrement', 'Pénalités de retard'],
+            ['Crédit soldé', null, null, 'end'],
+            ['Notifier le refus', 'Conseiller', null, 'end'],
         ];
 
-        foreach ($steps as $index => [$name, $actor, $featureName]) {
-            $step = $workflow->steps()->create(['position' => $index + 1, 'name' => $name, 'actor' => $actor, 'feature_id' => $feature($featureName)]);
+        $created = [];
+        foreach ($steps as $index => $definition) {
+            [$name, $actor, $featureName] = $definition;
+            $step = $workflow->steps()->create([
+                'position' => $index + 1, 'kind' => $definition[3] ?? 'action', 'name' => $name, 'actor' => $actor,
+                'feature_id' => $featureName !== null ? $feature($featureName) : null,
+            ]);
+            $created[$name] = $step;
 
             if ($featureName === 'Pénalités de retard') {
                 $step->businessRules()->attach($penaltyRule->id);
             }
+        }
+
+        // Conditions (RG-17): granted, refused, or back to the file when it is incomplete.
+        foreach ([['Oui', 'Suivi des échéances'], ['Non', 'Notifier le refus'], ['Dossier incomplet', 'Constitution du dossier']] as $position => [$label, $target]) {
+            $created['Comité : crédit accordé ?']->transitions()->create(['target_step_id' => $created[$target]->id, 'label' => $label, 'position' => $position]);
         }
     }
 

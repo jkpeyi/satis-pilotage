@@ -6,6 +6,7 @@ use App\Actions\Workflows\MoveWorkflowStep;
 use App\Actions\Workflows\SaveWorkflowStep;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
+use App\Enums\WorkflowStepKind;
 use App\Livewire\BusinessRules;
 use App\Livewire\Workflows;
 use App\Models\BusinessRule;
@@ -35,8 +36,8 @@ beforeEach(function () {
         'status' => RuleStatus::Pending,
     ]);
     $this->step = fn (array $data = []): WorkflowStep => app(SaveWorkflowStep::class)->handle([
-        'workflow_id' => $this->workflow->id, 'name' => 'Étape', 'actor' => null, 'feature_id' => null,
-        'description' => null, 'business_rule_ids' => [], ...$data,
+        'workflow_id' => $this->workflow->id, 'kind' => WorkflowStepKind::Action, 'name' => 'Étape', 'actor' => null, 'feature_id' => null,
+        'description' => null, 'business_rule_ids' => [], 'transitions' => [], ...$data,
     ]);
 });
 
