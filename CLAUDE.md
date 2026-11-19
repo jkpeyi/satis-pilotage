@@ -93,6 +93,7 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-12** Records are archived, not deleted. Detaching an item that has rules or issues requires confirmation.
 - **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
 - **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
+- **RG-15** A name is unique across the whole catalog, modules, sub-modules and features together, among active items; case, accents and punctuation are ignored (`CatalogName::key`, `EnsureUniqueCatalogName`). Every name entry suggests existing items so that they are reused (moved here, attached) rather than duplicated. Duplicates are merged with `MergeCatalogItems` (everything moves to the kept item, the duplicate is deleted and logged in `catalog_merges`), from the « Doublons » screen or `php artisan catalog:merge-duplicates`.
 
 ## Reports (SPEC-001 deliverables)
 

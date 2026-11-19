@@ -1,6 +1,7 @@
 <div>
     <x-ui.page-header title="Catalogue" description="Modules, sous-modules et fonctionnalités, communs à toutes les versions.">
         <x-slot:actions>
+            <x-ui.button variant="secondary" :href="route('catalog.duplicates')">Doublons</x-ui.button>
             <x-ui.button wire:click="startDraft(null, 'module')">Nouveau module</x-ui.button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -80,13 +81,16 @@
                                         Convertir en fonctionnalité
                                     </x-ui.button>
                                 @endif
+                                @unless ($item->isArchived())
+                                    <x-ui.button size="sm" variant="secondary" wire:click="startMerge">Fusionner dans…</x-ui.button>
+                                @endunless
                                 <x-ui.button size="sm" variant="ghost" wire:click="toggleArchive"
                                     wire:confirm="{{ $item->isArchived() ? 'Restaurer cet élément ?' : 'Archiver cet élément et tous ses sous-éléments ?' }}">
                                     {{ $item->isArchived() ? 'Restaurer' : 'Archiver' }}
                                 </x-ui.button>
                             </div>
                         </div>
-                        @error('convert') <p class="mb-4 text-sm text-red-600">{{ $message }}</p> @enderror
+                        @error('itemAction') <p class="mb-4 text-sm text-red-600">{{ $message }}</p> @enderror
 
                         <form wire:submit="save" class="space-y-4">
                             <div class="grid gap-4 sm:grid-cols-3">
@@ -166,4 +170,50 @@
             @endif
         </section>
     </div>
+
+    <x-ui.modal wire:model="showMerge" title="Fusionner dans un autre élément">
+        @if ($item)
+            <div class="space-y-4">
+                <p class="text-sm text-slate-600">
+                    « {{ $item->name }} » sera <strong>supprimé</strong> après avoir transmis à l'élément choisi tout ce qu'il porte :
+                    rattachements, règles métier, problèmes, historiques, sous-éléments et étapes de workflow. La fusion est tracée.
+                </p>
+                <x-ui.input label="Élément à conserver" wire:model.live.debounce.250ms="mergeSearch" placeholder="Rechercher par nom…" />
+                @if ($mergeCandidates === [])
+                    <p class="text-sm text-slate-500">Aucun {{ $item instanceof \App\Models\Module ? 'module' : 'élément de type fonctionnalité' }} actif ne correspond.</p>
+                @else
+                    <ul class="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-md border border-slate-200 text-sm">
+                        @foreach ($mergeCandidates as $candidate)
+                            <li wire:key="merge-candidate-{{ $candidate['key'] }}">
+                                <label class="flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-slate-50">
+                                    <input type="radio" value="{{ $candidate['key'] }}" wire:model.live="mergeTarget" class="mt-0.5 border-slate-300 text-brand-700">
+                                    <span>
+                                        <span class="font-medium text-slate-900">{{ $candidate['name'] }}</span>
+                                        <span class="block text-xs text-slate-500">{{ $candidate['path'] }}</span>
+                                    </span>
+                                </label>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                @if ($mergePreview)
+                    <div class="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                        <p>{{ $mergePreview['moving'] }} rattachement(s) passeront sur « {{ $mergePreview['target']->name }} ».</p>
+                        @if ($mergePreview['common'] > 0)
+                            <p>{{ $mergePreview['common'] }} version(s) ont déjà les deux éléments : leurs rattachements seront réunis (règles, problèmes, historiques, écarts mis bout à bout).</p>
+                        @endif
+                        @if ($mergePreview['children'] > 0)
+                            <p>{{ $mergePreview['children'] }} sous-élément(s) passeront sous « {{ $mergePreview['target']->name }} ».</p>
+                        @endif
+                    </div>
+                @endif
+                @error('mergeTarget') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                <div class="flex gap-2 pt-2">
+                    <x-ui.button variant="danger" wire:click="merge" :disabled="$mergeTarget === ''"
+                        wire:confirm="Fusionner et supprimer « {{ $item->name }} » ? Cette opération ne peut pas être annulée.">Fusionner</x-ui.button>
+                    <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>
+                </div>
+            </div>
+        @endif
+    </x-ui.modal>
 </div>

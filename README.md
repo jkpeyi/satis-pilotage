@@ -35,6 +35,20 @@ Avant chaque livraison :
 composer check   # Pint, Larastan, tests (base satis_test)
 ```
 
+## Unicité du catalogue
+
+Un nom de module, sous-module ou fonctionnalité n'existe qu'une fois dans tout le catalogue (majuscules, accents et ponctuation ignorés). La saisie propose les éléments existants pour les réutiliser. L'écran « Catalogue › Doublons » liste les noms identiques ou proches et permet de les fusionner.
+
+Mise à jour d'une base qui contient déjà des doublons : `php artisan migrate` s'arrête et indique la marche à suivre.
+
+```bash
+php artisan catalog:merge-duplicates          # aperçu, ne modifie rien
+php artisan catalog:merge-duplicates --force  # fusionne et supprime les doublons
+php artisan migrate                           # pose ensuite la contrainte d'unicité
+```
+
+Chaque fusion transfère à l'élément conservé les rattachements, règles métier, problèmes, historiques, sous-éléments et étapes de workflow, puis supprime le doublon ; elle est tracée dans la table `catalog_merges`. Les paires module/fonctionnalité de même nom sont seulement signalées : convertissez l'un des deux avant de fusionner.
+
 ## Rapports (livrables DTI)
 
 L'écran « Rapports » génère les livrables du plan DTI (SPEC-001) à partir des données de l'application : un document Word rempli depuis le modèle de `resources/report-templates`, et une annexe XLSX avec les tableaux complets. Chaque export est figé (instantané des données, empreintes SHA-256) et conservé dans `storage/app/private/reports`. Les données absentes de l'application apparaissent « À confirmer ».

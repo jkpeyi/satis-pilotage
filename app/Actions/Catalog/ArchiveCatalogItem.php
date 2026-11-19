@@ -2,6 +2,7 @@
 
 namespace App\Actions\Catalog;
 
+use App\Exceptions\DuplicateCatalogItem;
 use App\Models\Feature;
 use App\Models\Module;
 use App\Queries\CatalogTree;
@@ -17,7 +18,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class ArchiveCatalogItem
 {
-    public function __construct(private readonly Positions $positions) {}
+    public function __construct(
+        private readonly Positions $positions,
+        private readonly EnsureUniqueCatalogName $ensureUniqueName,
+    ) {}
 
     public function handle(Module|Feature $item, bool $archive = true): void
     {
@@ -36,6 +40,10 @@ final class ArchiveCatalogItem
             $moduleIds = [...$moduleIds, ...$ancestorIds];
         }
 
+        if (! $archive) {
+            $this->ensureRestorable($moduleIds, $featureIds);
+        }
+
         DB::transaction(function () use ($item, $archive, $moduleIds, $featureIds): void {
             $values = ['archived_at' => $archive ? now() : null, 'updated_by' => Auth::id(), 'updated_at' => now()];
 
@@ -48,5 +56,30 @@ final class ArchiveCatalogItem
                 $this->positions->insert($item->refresh(), null);
             }
         });
+    }
+
+    /**
+     * Restoring must not bring back a name now used by another active item, nor two items of the
+     * restored subtree with the same name.
+     *
+     * @param  list<int>  $moduleIds
+     * @param  list<int>  $featureIds
+     */
+    private function ensureRestorable(array $moduleIds, array $featureIds): void
+    {
+        $items = [
+            ...Module::query()->whereKey($moduleIds)->archived()->get()->all(),
+            ...Feature::query()->whereKey($featureIds)->archived()->get()->all(),
+        ];
+        $seen = [];
+
+        foreach ($items as $restored) {
+            $key = $restored->name_key;
+            if (isset($seen[$key])) {
+                throw new DuplicateCatalogItem($seen[$key], $this->ensureUniqueName->path($seen[$key]));
+            }
+            $seen[$key] = $restored;
+            $this->ensureUniqueName->handle($restored->name);
+        }
     }
 }

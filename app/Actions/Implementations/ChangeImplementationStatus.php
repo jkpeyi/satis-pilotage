@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\DB;
 final class ChangeImplementationStatus
 {
     /**
+     * Without a user (maintenance command), the change is recorded as made by the system.
+     *
      * @param  list<int>  $implementationIds
      * @return int Number of implementations whose status actually changed.
      */
-    public function handle(array $implementationIds, ImplementationStatus $status, User $user, ?string $note = null): int
+    public function handle(array $implementationIds, ImplementationStatus $status, ?User $user, ?string $note = null): int
     {
         return DB::transaction(function () use ($implementationIds, $status, $user, $note): int {
             $toChange = Implementation::query()
@@ -38,9 +40,9 @@ final class ChangeImplementationStatus
                 ->whereKey($toChange->modelKeys())
                 ->update([
                     'status' => $status->value,
-                    'assessed_by' => $user->id,
+                    'assessed_by' => $user?->id,
                     'assessed_at' => $now,
-                    'updated_by' => $user->id,
+                    'updated_by' => $user?->id,
                     'updated_at' => $now,
                 ]);
 
@@ -50,7 +52,7 @@ final class ChangeImplementationStatus
                     'from_status' => $implementation->status->value,
                     'to_status' => $status->value,
                     'note' => $note,
-                    'user_id' => $user->id,
+                    'user_id' => $user?->id,
                     'created_at' => $now,
                 ])->all()
             );

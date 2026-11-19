@@ -7,18 +7,21 @@ use App\Actions\Catalog\ConvertFeatureToSubmodule;
 use App\Actions\Catalog\ConvertSubmoduleToFeature;
 use App\Actions\Catalog\CreateFeature;
 use App\Actions\Catalog\CreateModule;
+use App\Actions\Catalog\MergeCatalogItems;
 use App\Actions\Catalog\MoveFeature;
 use App\Actions\Catalog\MoveModule;
 use App\Actions\Catalog\SaveCatalogItem;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Implementations\DetachCatalogItems;
 use App\Exceptions\DetachRequiresConfirmation;
+use App\Exceptions\DuplicateCatalogItem;
 use App\Livewire\Forms\CatalogItemForm;
 use App\Models\Feature;
 use App\Models\Implementation;
 use App\Models\Module;
 use App\Models\Product;
 use App\Models\Version;
+use App\Queries\CatalogSearch;
 use App\Queries\CatalogTree;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -66,6 +69,13 @@ class Index extends Component
     public ?string $detachWarning = null;
 
     public ?int $pendingDetachVersionId = null;
+
+    public bool $showMerge = false;
+
+    public string $mergeSearch = '';
+
+    /** "module:12" or "feature:34": the item the selected one is merged into. */
+    public string $mergeTarget = '';
 
     public function mount(): void
     {
@@ -130,10 +140,16 @@ class Index extends Component
 
         $this->validate(['draftName' => ['required', 'string', 'max:255']], [], ['draftName' => 'nom']);
 
-        if ($this->draft['kind'] === 'feature' && $this->draft['parent_id'] !== null) {
-            $createFeature->handle(['name' => $this->draftName, 'module_id' => $this->draft['parent_id']]);
-        } else {
-            $createModule->handle(['name' => $this->draftName, 'parent_id' => $this->draft['parent_id']]);
+        try {
+            if ($this->draft['kind'] === 'feature' && $this->draft['parent_id'] !== null) {
+                $createFeature->handle(['name' => $this->draftName, 'module_id' => $this->draft['parent_id']]);
+            } else {
+                $createModule->handle(['name' => $this->draftName, 'parent_id' => $this->draft['parent_id']]);
+            }
+        } catch (DuplicateCatalogItem $exception) {
+            $this->addError('draftName', $exception->getMessage());
+
+            return;
         }
 
         $this->draftName = '';
@@ -184,6 +200,58 @@ class Index extends Component
         $this->resetValidation('draftName');
     }
 
+    /**
+     * The name typed in the quick entry already exists elsewhere: move that item here instead of
+     * creating a duplicate.
+     */
+    public function moveExistingHere(string $key, MoveModule $moveModule, MoveFeature $moveFeature): void
+    {
+        $item = $this->resolve($key);
+        $parentId = $this->draft['parent_id'] ?? null;
+
+        if ($item === null || $this->draft === null) {
+            return;
+        }
+
+        try {
+            if ($item instanceof Module) {
+                $parent = $parentId !== null ? Module::query()->findOrFail($parentId) : null;
+                $siblings = Module::query()->where('parent_id', $parentId)->whereNull('archived_at')->count();
+                $moveModule->handle($item, $parent, $siblings);
+            } elseif ($parentId !== null) {
+                $moveFeature->handle($item, Module::query()->findOrFail($parentId), Feature::query()->where('module_id', $parentId)->whereNull('archived_at')->count());
+            }
+        } catch (DomainException $exception) {
+            $this->addError('draftName', $exception->getMessage());
+
+            return;
+        }
+
+        $this->draftName = '';
+        $this->resetValidation('draftName');
+        $this->dispatch('notify', message: "« {$item->name} » a été déplacé ici.");
+    }
+
+    public function restoreExisting(string $key, ArchiveCatalogItem $archiveCatalogItem): void
+    {
+        $item = $this->resolve($key);
+        if ($item === null) {
+            return;
+        }
+
+        try {
+            $archiveCatalogItem->handle($item, archive: false);
+        } catch (DuplicateCatalogItem $exception) {
+            $this->addError('draftName', $exception->getMessage());
+
+            return;
+        }
+
+        $this->draftName = '';
+        $this->select($key);
+        $this->dispatch('notify', message: "« {$item->name} » a été restauré.");
+    }
+
     // Tree changes ----------------------------------------------------------------------------
 
     public function move(string $group, int $id, ?int $parentId, int $position, MoveModule $moveModule, MoveFeature $moveFeature): void
@@ -209,7 +277,14 @@ class Index extends Component
             return;
         }
 
-        $saveCatalogItem->handle($item, $this->form->data($item));
+        try {
+            $saveCatalogItem->handle($item, $this->form->data($item));
+        } catch (DuplicateCatalogItem $exception) {
+            $this->addError('form.name', $exception->getMessage());
+
+            return;
+        }
+
         $this->dispatch('notify', message: 'Élément enregistré.');
     }
 
@@ -221,7 +296,14 @@ class Index extends Component
             return;
         }
 
-        $archiveCatalogItem->handle($item, ! $item->isArchived());
+        try {
+            $archiveCatalogItem->handle($item, ! $item->isArchived());
+        } catch (DuplicateCatalogItem $exception) {
+            $this->addError('itemAction', $exception->getMessage());
+
+            return;
+        }
+
         $this->dispatch('notify', message: $item->refresh()->isArchived() ? 'Élément archivé avec ses sous-éléments.' : 'Élément restauré.');
     }
 
@@ -236,7 +318,7 @@ class Index extends Component
                 default => null,
             };
         } catch (DomainException $exception) {
-            $this->addError('convert', $exception->getMessage());
+            $this->addError('itemAction', $exception->getMessage());
 
             return;
         }
@@ -245,6 +327,47 @@ class Index extends Component
             $this->select(($converted instanceof Module ? 'module:' : 'feature:').$converted->id);
             $this->dispatch('notify', message: 'Élément converti. Ses rattachements, règles, problèmes et historiques sont conservés.');
         }
+    }
+
+    public function startMerge(): void
+    {
+        $this->mergeSearch = '';
+        $this->mergeTarget = '';
+        $this->resetValidation('mergeTarget');
+        $this->showMerge = true;
+    }
+
+    public function updatedMergeSearch(): void
+    {
+        $this->mergeTarget = '';
+    }
+
+    /**
+     * Merges the selected item into the chosen one, which is kept; the selected item is deleted
+     * once everything it holds has moved.
+     */
+    public function merge(MergeCatalogItems $mergeCatalogItems): void
+    {
+        $item = $this->selectedItem();
+        $target = $this->mergeTarget !== '' ? $this->resolve($this->mergeTarget) : null;
+
+        if ($item === null || $target === null) {
+            $this->addError('mergeTarget', 'Choisissez l’élément à conserver.');
+
+            return;
+        }
+
+        try {
+            $mergeCatalogItems->handle($item, $target);
+        } catch (DomainException $exception) {
+            $this->addError('mergeTarget', $exception->getMessage());
+
+            return;
+        }
+
+        $this->showMerge = false;
+        $this->select($this->mergeTarget);
+        $this->dispatch('notify', message: "« {$item->name} » a été fusionné dans « {$target->name} ».");
     }
 
     public function attachToVersions(AttachCatalogItems $attachCatalogItems): void
@@ -312,7 +435,47 @@ class Index extends Component
             'availableVersions' => $item !== null ? $this->availableVersions($item) : collect(),
             'products' => Product::query()->whereNull('archived_at')->orderBy('name')->pluck('name', 'id'),
             'path' => $item !== null ? $this->path($item) : [],
+            'draftSuggestions' => $this->draft !== null ? app(CatalogSearch::class)->search($this->draftName, 6) : [],
+            'mergeCandidates' => $this->showMerge && $item !== null ? $this->mergeCandidates($item) : [],
+            'mergePreview' => $this->showMerge && $item !== null && $this->mergeTarget !== '' ? $this->mergePreview($item) : null,
         ]);
+    }
+
+    /**
+     * Active items of the same kind matching the search, the selected item excluded.
+     *
+     * @return list<array{key: string, type: 'module'|'feature', id: int, name: string, path: string, exact: bool, archived: bool}>
+     */
+    private function mergeCandidates(Module|Feature $item): array
+    {
+        $type = $item instanceof Module ? 'module' : 'feature';
+        $selfKey = $type.':'.$item->getKey();
+
+        return array_values(array_filter(
+            app(CatalogSearch::class)->search($this->mergeSearch !== '' ? $this->mergeSearch : $item->name, 20, withArchived: false),
+            fn (array $candidate): bool => $candidate['type'] === $type && $candidate['key'] !== $selfKey,
+        ));
+    }
+
+    /**
+     * @return array{target: Module|Feature, moving: int, common: int, children: int}|null
+     */
+    private function mergePreview(Module|Feature $item): ?array
+    {
+        $target = $this->resolve($this->mergeTarget);
+        if ($target === null) {
+            return null;
+        }
+
+        $versionIds = $item->implementations()->pluck('version_id');
+        $common = $target->implementations()->whereIn('version_id', $versionIds)->count();
+
+        return [
+            'target' => $target,
+            'moving' => $versionIds->count() - $common,
+            'common' => $common,
+            'children' => $item instanceof Module ? $item->children()->count() + $item->features()->count() : 0,
+        ];
     }
 
     private function selectedItem(): Module|Feature|null
