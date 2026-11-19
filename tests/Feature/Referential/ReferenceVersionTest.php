@@ -3,6 +3,7 @@
 use App\Actions\Referential\ArchiveVersion;
 use App\Actions\Referential\SaveVersion;
 use App\Actions\Referential\SetReferenceVersion;
+use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
 use App\Models\Product;
 use App\Models\Version;
@@ -53,6 +54,9 @@ it('RG-08: removes the reference when the reference version moves to another pro
         'customer_id' => $version->customer_id,
         'name' => $version->name,
         'status' => VersionStatus::InProduction,
+        'is_historical_pivot' => false,
+        'technical_owner_id' => null,
+        'verification_status' => VerificationStatus::ToVerify,
         'notes' => null,
     ], $version->refresh());
 

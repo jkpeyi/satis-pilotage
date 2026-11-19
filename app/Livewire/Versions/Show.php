@@ -10,8 +10,13 @@ use App\Actions\Referential\SaveRepository;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
+use App\Enums\VerificationStatus;
+use App\Livewire\Concerns\EnumOptions;
+use App\Livewire\Concerns\ManagesReleasesAndDeployments;
 use App\Livewire\Forms\EnvironmentForm;
 use App\Livewire\Forms\RepositoryForm;
+use App\Models\Deployment;
+use App\Models\Release;
 use App\Models\Repository;
 use App\Models\Version;
 use DomainException;
@@ -19,10 +24,12 @@ use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
- * "Fiche version": details, repositories with their stack, environments.
+ * "Fiche version": details, repositories with their stack and releases, environments and their deployments.
  */
 class Show extends Component
 {
+    use EnumOptions, ManagesReleasesAndDeployments;
+
     public Version $version;
 
     public RepositoryForm $repositoryForm;
@@ -124,7 +131,7 @@ class Show extends Component
 
     public function render(ResolveStackSupport $resolveStackSupport): View
     {
-        $this->version->load(['product', 'customer', 'creator', 'editor']);
+        $this->version->load(['product', 'customer', 'technicalOwner', 'verifier', 'creator', 'editor']);
 
         $repositories = $this->version->repositories()
             ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
@@ -132,14 +139,39 @@ class Show extends Component
             ->get();
 
         $environments = $this->version->environments()
-            ->with('repository')
+            ->with(['repository', 'deployments' => fn ($query) => $query->active()->with('release')->limit(1)])
             ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
             ->orderBy('type')->orderBy('name')
             ->get();
 
+        $releases = Release::query()
+            ->with('repository')
+            ->whereHas('repository', fn ($query) => $query->where('version_id', $this->version->id))
+            ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
+            ->orderByDesc('released_on')->orderByDesc('id')
+            ->get();
+
+        $deployments = Deployment::query()
+            ->with(['environment', 'release', 'verifier'])
+            ->whereHas('environment', fn ($query) => $query->where('version_id', $this->version->id))
+            ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
+            ->orderByDesc('deployed_at')->orderByDesc('id')
+            ->get();
+
+        $deploymentEnvironmentId = (int) $this->deploymentForm->environment_id;
+        $deploymentRepositoryId = $environments->firstWhere('id', $deploymentEnvironmentId)?->repository_id;
+
         return view('livewire.versions.show', [
             'repositories' => $repositories,
             'environments' => $environments,
+            'releases' => $releases,
+            'deployments' => $deployments,
+            'releaseOptions' => $releases
+                ->filter(fn (Release $release): bool => ! $release->isArchived()
+                    && ($deploymentRepositoryId === null || $release->repository_id === $deploymentRepositoryId))
+                ->mapWithKeys(fn (Release $release): array => [$release->id => $release->name.' — '.$release->repository->path]),
+            'environmentOptions' => $environments->filter(fn ($environment): bool => ! $environment->isArchived())->pluck('name', 'id'),
+            'verificationStatuses' => $this->enumOptions(VerificationStatus::class),
             'stackSupport' => $repositories->mapWithKeys(fn (Repository $repository): array => [
                 $repository->id => $resolveStackSupport->handle($repository->stack ?? []),
             ]),

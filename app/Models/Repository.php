@@ -66,4 +66,12 @@ class Repository extends Model
     {
         return $this->hasMany(CodeSnippet::class);
     }
+
+    /**
+     * @return HasMany<Release, $this>
+     */
+    public function releases(): HasMany
+    {
+        return $this->hasMany(Release::class)->orderByDesc('released_on')->orderByDesc('id');
+    }
 }

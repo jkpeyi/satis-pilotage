@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
+use App\Models\Concerns\Verifiable;
 use Database\Factories\VersionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,11 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Deployment of a product for a customer. A version without customer is a baseline.
  */
-#[Fillable(['product_id', 'customer_id', 'name', 'status', 'notes'])]
+#[Fillable(['product_id', 'customer_id', 'name', 'status', 'is_historical_pivot', 'technical_owner_id', 'notes'])]
 class Version extends Model
 {
     /** @use HasFactory<VersionFactory> */
-    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps, Verifiable;
 
     public const CODE_PREFIX = 'APP-';
 
@@ -29,6 +32,8 @@ class Version extends Model
      */
     protected $attributes = [
         'status' => 'in_production',
+        'is_historical_pivot' => false,
+        'verification_status' => VerificationStatus::ToVerify->value,
     ];
 
     /**
@@ -38,6 +43,7 @@ class Version extends Model
     {
         return [
             'status' => VersionStatus::class,
+            'is_historical_pivot' => 'boolean',
         ];
     }
 
@@ -55,6 +61,14 @@ class Version extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function technicalOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'technical_owner_id');
     }
 
     /**
@@ -79,6 +93,22 @@ class Version extends Model
     public function implementations(): HasMany
     {
         return $this->hasMany(Implementation::class);
+    }
+
+    /**
+     * Versions counted as applications of the estate: a future perspective (e.g. Satis_SaaS) is not (SPEC-001, scenario 9).
+     *
+     * @param  Builder<Version>  $query
+     * @return Builder<Version>
+     */
+    public function scopeExcludingFuture(Builder $query): Builder
+    {
+        return $query->where($this->qualifyColumn('status'), '!=', VersionStatus::Future->value);
+    }
+
+    public function isFuture(): bool
+    {
+        return $this->status === VersionStatus::Future;
     }
 
     public function isBaseline(): bool

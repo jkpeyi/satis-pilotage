@@ -39,6 +39,12 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Version de référence | `Product::referenceVersion` |
 | Dépôt | `Repository` |
 | Environnement | `Environment` |
+| Release (tag d'un dépôt) | `Release` |
+| Déploiement | `Deployment` (an environment's dated deployment of a release or commit) |
+| Cycle de vie | `VersionStatus` (`future` = perspective such as Satis_SaaS, never counted in production) |
+| Pivot historique | `Version::is_historical_pivot` (point of comparison, never a target) |
+| Responsable technique | `Version::technicalOwner` |
+| Statut de vérification | `VerificationStatus` (`Verifiable` concern: records who decided and when) |
 | Technologie, stack | `Technology`, `stack` |
 | Module, sous-module | `Module` (a sub-module is a `Module` with a `parent_id`) |
 | Fonctionnalité | `Feature` |

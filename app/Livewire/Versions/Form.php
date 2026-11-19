@@ -3,16 +3,21 @@
 namespace App\Livewire\Versions;
 
 use App\Actions\Referential\SaveVersion;
+use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
+use App\Livewire\Concerns\EnumOptions;
 use App\Livewire\Forms\VersionForm;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Version;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class Form extends Component
 {
+    use EnumOptions;
+
     public VersionForm $form;
 
     public function mount(?Version $version = null): void
@@ -42,7 +47,9 @@ class Form extends Component
         return view('livewire.versions.form', [
             'products' => Product::query()->whereNull('archived_at')->orderBy('name')->pluck('name', 'id'),
             'customers' => Customer::query()->whereNull('archived_at')->orderBy('name')->pluck('name', 'id'),
-            'statuses' => collect(VersionStatus::cases())->mapWithKeys(fn (VersionStatus $status) => [$status->value => $status->label()]),
+            'statuses' => $this->enumOptions(VersionStatus::class),
+            'verificationStatuses' => $this->enumOptions(VerificationStatus::class),
+            'users' => User::query()->orderBy('name')->pluck('name', 'id'),
         ])->title($title);
     }
 }

@@ -1,10 +1,14 @@
 <?php
 
+use App\Actions\Referential\SaveDeployment;
 use App\Actions\Reports\GenerateReport;
 use App\Enums\RepositoryRole;
+use App\Enums\VerificationStatus;
+use App\Enums\VersionStatus;
 use App\Models\Customer;
 use App\Models\Environment;
 use App\Models\Product;
+use App\Models\Release;
 use App\Models\ReportGeneration;
 use App\Models\Repository;
 use App\Models\Technology;
@@ -42,7 +46,7 @@ beforeEach(function () {
         'web_url' => 'https://gitlab.example.test/satis/macro-alpha-api',
         'stack' => ['php' => '7.4.33'],
     ]);
-    Environment::factory()->for($this->version)->create([
+    $this->environment = Environment::factory()->for($this->version)->create([
         'repository_id' => $this->repository->id,
         'name' => 'Production Alpha',
         'deployed_ref' => 'a1b2c3d4',
@@ -90,9 +94,52 @@ it('shows missing data as "À confirmer" and lists it in the pending items', fun
     expect($text)
         ->toContain('À confirmer')
         ->toContain('Applications — Responsable technique : 1 valeur à confirmer')
+        ->toContain('Déploiements — Date de déploiement : 1 valeur à confirmer')
+        ->toContain('responsable technique non désigné')
+        ->toContain('aucun déploiement enregistré pour '.$this->environment->displayCode())
         ->toContain('Applications — Frontend : 1 valeur à confirmer')
         ->and($generation->missing_count)->toBeGreaterThan(0)
         ->and((float) $generation->completeness)->toBeLessThan(100.0);
+});
+
+it('reports the owner, the verification and the latest verified deployment of each application', function () {
+    $this->actingAs($this->user);
+    $this->version->update(['technical_owner_id' => $this->user->id, 'is_historical_pivot' => true]);
+    $this->version->applyVerificationStatus(VerificationStatus::Verified);
+    $this->version->save();
+    $release = Release::factory()->for($this->repository)->create(['name' => 'v2.3.0', 'commit_sha' => str_repeat('c', 40)]);
+    app(SaveDeployment::class)->handle([
+        'environment_id' => $this->environment->id, 'release_id' => $release->id, 'commit_sha' => null,
+        'deployed_at' => '2026-06-20 21:00', 'verification_status' => VerificationStatus::Verified, 'evidence' => null, 'notes' => null,
+    ]);
+
+    $generation = ($this->generate)();
+    $snapshot = json_decode($generation->snapshot, true);
+    $application = $snapshot['sections']['applications.table']['rows'][0];
+    $deployment = $snapshot['sections']['deployments.table']['rows'][0];
+
+    expect($application['technical_owner'])->toBe('Awa Koné')
+        ->and($application['verification_status'])->toBe('Vérifié')
+        ->and($application['comparison_role'])->toBe('Pivot historique')
+        ->and($deployment['release'])->toBe('v2.3.0')
+        ->and($deployment['deployed_commit'])->toBe(str_repeat('c', 40))
+        ->and($deployment['deployed_at'])->toBe('20/06/2026 21:00')
+        ->and($deployment['verification_status'])->toBe('Vérifié')
+        ->and(docxText(Storage::disk('local')->path($generation->docx_path)))
+        ->toContain('Pivot historique (point de comparaison, pas une cible)')
+        ->not->toContain('responsable technique non désigné');
+});
+
+it('SPEC-001 scenario 9: leaves a future perspective such as Satis_SaaS out of the inventory', function () {
+    $saas = Version::factory()->for($this->product)->create(['name' => 'Satis_SaaS', 'customer_id' => null, 'status' => VersionStatus::Future]);
+
+    $generation = ($this->generate)();
+    $snapshot = json_decode($generation->snapshot, true);
+
+    expect(array_column($snapshot['sections']['applications.table']['rows'], 'application_id'))->toBe([$this->version->displayCode()])
+        ->and(docxText(Storage::disk('local')->path($generation->docx_path)))
+        ->toContain('1 application dans le périmètre')
+        ->toContain('Hors inventaire de production (perspectives futures) : '.$saas->displayCode().' · Satis_SaaS');
 });
 
 it('escapes user data and never takes it for a template variable', function () {
