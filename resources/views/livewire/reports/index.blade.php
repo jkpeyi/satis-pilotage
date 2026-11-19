@@ -27,7 +27,8 @@
 
         <div class="space-y-3 lg:col-span-2">
             <div class="flex items-center justify-between gap-3">
-                <h2 class="font-semibold text-slate-900">Registre des exports</h2>
+                <h2 class="whitespace-nowrap font-semibold text-slate-900">Registre des exports</h2>
+                <x-ui.archived-toggle wire:model.live="showDeleted" class="ml-auto">Afficher les exports supprimés</x-ui.archived-toggle>
                 <select wire:model.live="filterCode" aria-label="Livrable" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">
                     <option value="">Tous les livrables</option>
                     @foreach ($deliverables as $code => $deliverable) <option value="{{ $code }}">{{ $code }} — {{ $deliverable['title'] }}</option> @endforeach
@@ -46,7 +47,7 @@
                         <th class="text-right">Fichiers</th>
                     </x-slot:head>
                     @foreach ($generations as $generation)
-                        <tr wire:key="generation-{{ $generation->id }}">
+                        <tr wire:key="generation-{{ $generation->id }}" @class(['opacity-60' => $generation->isDeleted()])>
                             <td>
                                 <div class="font-mono text-xs text-slate-500">{{ $generation->documentId() }} · v{{ $generation->version_number }}</div>
                                 <div class="font-medium text-slate-900">{{ $generation->title }}</div>
@@ -65,11 +66,20 @@
                                 <div class="font-mono text-[10px] text-slate-400" title="Empreinte des données (SHA-256) : {{ $generation->data_sha256 }}">{{ substr($generation->data_sha256, 0, 12) }}</div>
                             </td>
                             <td class="whitespace-nowrap text-right">
-                                @if ($generation->docx_path)
-                                    <a href="{{ route('reports.download', [$generation, 'docx']) }}" class="font-medium text-brand-700 hover:underline">DOCX</a>
-                                @endif
-                                @if ($generation->xlsx_path)
-                                    <a href="{{ route('reports.download', [$generation, 'xlsx']) }}" class="ml-3 font-medium text-brand-700 hover:underline">XLSX</a>
+                                @if ($generation->isDeleted())
+                                    <span class="text-xs text-slate-500">
+                                        Supprimé le {{ $generation->deleted_at?->format('d/m/Y') }}@if ($generation->deleter) par {{ $generation->deleter->name }}@endif
+                                    </span>
+                                @else
+                                    @if ($generation->docx_path)
+                                        <a href="{{ route('reports.download', [$generation, 'docx']) }}" class="font-medium text-brand-700 hover:underline">DOCX</a>
+                                    @endif
+                                    @if ($generation->xlsx_path)
+                                        <a href="{{ route('reports.download', [$generation, 'xlsx']) }}" class="ml-3 font-medium text-brand-700 hover:underline">XLSX</a>
+                                    @endif
+                                    <button type="button" wire:click="delete({{ $generation->id }})"
+                                        wire:confirm="Supprimer l'export {{ $generation->documentId() }} ? Ses fichiers DOCX et XLSX seront effacés ; une trace reste dans le registre."
+                                        class="ml-3 text-xs text-slate-500 hover:text-red-600">Supprimer</button>
                                 @endif
                             </td>
                         </tr>

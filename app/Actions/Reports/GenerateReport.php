@@ -53,11 +53,12 @@ final class GenerateReport
 
         try {
             return DB::transaction(function () use ($code, $scope, $author, $definition, $content, $snapshot, $dataHash, $disk, &$directory): ReportGeneration {
-                $versionNumber = ReportGeneration::query()
+                // Numbers are never reused, deleted exports included.
+                $versionNumber = (int) ReportGeneration::query()
                     ->where('code', $code)
                     ->where('scope_hash', $scope->hash())
                     ->lockForUpdate()
-                    ->count() + 1;
+                    ->max('version_number') + 1;
 
                 $generation = ReportGeneration::query()->create([
                     'code' => $code,
