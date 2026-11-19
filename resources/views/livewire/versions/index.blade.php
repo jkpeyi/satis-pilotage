@@ -20,8 +20,8 @@
                 <option value="{{ $id }}">{{ $name }}</option>
             @endforeach
         </select>
-        <select wire:model.live="status" aria-label="Statut" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">
-            <option value="">Tous les statuts</option>
+        <select wire:model.live="status" aria-label="Cycle de vie" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">
+            <option value="">Tous les cycles de vie</option>
             @foreach ($statuses as $value => $label)
                 <option value="{{ $value }}">{{ $label }}</option>
             @endforeach
@@ -37,7 +37,7 @@
                 <th>Version</th>
                 <th>Produit</th>
                 <th>Client</th>
-                <th>Statut</th>
+                <th>Cycle de vie</th>
                 <th class="text-right">Dépôts</th>
             </x-slot:head>
             @foreach ($versions as $version)

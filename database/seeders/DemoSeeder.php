@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Actions\Catalog\CreateFeature;
 use App\Actions\Catalog\CreateModule;
 use App\Actions\Implementations\AttachCatalogItems;
+use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
+use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueType;
@@ -13,12 +15,15 @@ use App\Enums\RepositoryRole;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
+use App\Enums\VerificationStatus;
 use App\Models\BusinessRule;
 use App\Models\Customer;
+use App\Models\Environment;
 use App\Models\Implementation;
 use App\Models\Issue;
 use App\Models\Module;
 use App\Models\Product;
+use App\Models\Release;
 use App\Models\Repository;
 use App\Models\Technology;
 use App\Models\Version;
@@ -30,7 +35,7 @@ use Illuminate\Database\Seeder;
  */
 class DemoSeeder extends Seeder
 {
-    public function run(CreateModule $createModule, CreateFeature $createFeature, AttachCatalogItems $attach, SetReferenceVersion $setReference): void
+    public function run(CreateModule $createModule, CreateFeature $createFeature, AttachCatalogItems $attach, SetReferenceVersion $setReference, SaveDeployment $saveDeployment): void
     {
         $macro = Product::query()->create(['code' => 'MACRO', 'name' => 'Satis Macro', 'description' => 'Solution de gestion pour la microfinance.']);
         Product::query()->create(['code' => 'PRO', 'name' => 'Satis Pro', 'description' => 'Solution pour les banques.']);
@@ -39,11 +44,14 @@ class DemoSeeder extends Seeder
         $customerB = Customer::query()->create(['name' => 'Institution Démo B', 'country' => 'Pays B']);
 
         $baseline = Version::query()->create(['product_id' => $macro->id, 'name' => 'Socle Macro', 'status' => 'in_production']);
-        $versionA = Version::query()->create(['product_id' => $macro->id, 'customer_id' => $customerA->id, 'name' => 'Satis Macro – Banque Démo A', 'status' => 'in_production']);
+        $versionA = Version::query()->create(['product_id' => $macro->id, 'customer_id' => $customerA->id, 'name' => 'Satis Macro – Banque Démo A', 'status' => 'in_production', 'is_historical_pivot' => true]);
         $versionB = Version::query()->create(['product_id' => $macro->id, 'customer_id' => $customerB->id, 'name' => 'Satis Macro – Institution Démo B', 'status' => 'in_testing']);
         $setReference->handle($macro, $baseline);
 
-        Repository::query()->create([
+        // A future perspective: listed apart, never counted as a production application.
+        Version::query()->create(['product_id' => $macro->id, 'name' => 'Satis Macro SaaS', 'status' => 'future']);
+
+        $apiA = Repository::query()->create([
             'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-api', 'role' => RepositoryRole::Backend,
             'production_branch' => 'main', 'active_branches' => ['main', 'develop'], 'stack' => ['php' => '8.1.27', 'laravel' => '9.52.16'],
         ]);
@@ -51,6 +59,19 @@ class DemoSeeder extends Seeder
             'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-front', 'role' => RepositoryRole::Frontend,
             'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['react' => '17.0.2', 'node' => '16.20.0'],
         ]);
+
+        $productionA = Environment::query()->create([
+            'version_id' => $versionA->id, 'repository_id' => $apiA->id, 'type' => EnvironmentType::Production, 'name' => 'Production',
+            'database_engine' => 'MySQL', 'database_version' => '5.7', 'php_version' => '8.1.27',
+        ]);
+        $testingA = Environment::query()->create([
+            'version_id' => $versionA->id, 'repository_id' => $apiA->id, 'type' => EnvironmentType::Testing, 'name' => 'Recette',
+            'database_engine' => 'MySQL', 'database_version' => '8.0', 'php_version' => '8.1.27',
+        ]);
+        $release23 = Release::query()->create(['repository_id' => $apiA->id, 'name' => 'v2.3.0', 'commit_sha' => '4f1c2e9a7b3d5f60812c3d4e5f6a7b8c9d0e1f2a', 'released_on' => '2026-06-15']);
+        $release24 = Release::query()->create(['repository_id' => $apiA->id, 'name' => 'v2.4.0', 'commit_sha' => '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b', 'released_on' => '2026-10-02']);
+        $saveDeployment->handle(['environment_id' => $productionA->id, 'release_id' => $release23->id, 'commit_sha' => null, 'deployed_at' => '2026-06-20 21:00', 'verification_status' => VerificationStatus::Verified, 'evidence' => 'Contrôle de la version affichée sur le serveur de production', 'notes' => null]);
+        $saveDeployment->handle(['environment_id' => $testingA->id, 'release_id' => $release24->id, 'commit_sha' => null, 'deployed_at' => '2026-10-05 10:30', 'verification_status' => VerificationStatus::ToVerify, 'evidence' => null, 'notes' => null]);
 
         foreach ([['php', '8.1', '2025-12-31'], ['php', '8.3', '2027-12-31'], ['laravel', '9', '2024-02-06'], ['laravel', '12', '2027-02-24'], ['node', '16', '2023-09-11']] as [$component, $cycle, $end]) {
             Technology::query()->create(['component' => $component, 'cycle' => $cycle, 'end_of_support' => $end]);

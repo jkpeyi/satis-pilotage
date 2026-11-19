@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Enums\IssueStatus;
+use App\Enums\VersionStatus;
 use App\Models\Customer;
 use App\Models\Issue;
 use App\Models\Product;
@@ -29,7 +30,10 @@ class Dashboard extends Component
             'counts' => [
                 'Produits' => Product::query()->active()->count(),
                 'Clients' => Customer::query()->active()->count(),
-                'Versions' => Version::query()->active()->count(),
+                // A future perspective (e.g. Satis_SaaS) and a retired version are not in service (SPEC-001, scenario 9).
+                'Versions en service' => Version::query()->active()
+                    ->whereIn('status', [VersionStatus::InProduction->value, VersionStatus::InTesting->value])
+                    ->count(),
                 'Problèmes non résolus' => $this->openIssues()->count(),
             ],
             'openEffort' => (float) $this->openIssues()->sum('effort_days'),
