@@ -1,0 +1,228 @@
+{
+  "version": "1.0",
+  "project": "SATISWORLD DTI — Audit et préparation du refactoring",
+  "source_document": "DTI_Plan_Directeur_Dette_Technique_SATIS_V1.docx",
+  "export_conventions": {
+    "identifiers": "Identifiants stables; ne jamais utiliser le libellé comme clé primaire",
+    "status": "Brouillon / À vérifier / Vérifié / Validé",
+    "traceability": "Toute observation importée conserve feuille et ligne source",
+    "no_invention": "Les champs non renseignés restent À confirmer; ne pas fabriquer de mesures",
+    "scope": "Satis_SaaS = projet futur, exclu de la baseline des applications en production",
+    "security": "Aucun secret, identifiant bancaire ou donnée personnelle dans les exports; contrôle d’accès et journalisation"
+  },
+  "deliverables": [
+    {
+      "code": "L1",
+      "title": "Cartographie du patrimoine applicatif",
+      "template_file": "L1_Modele_Cartographie_du_patrimoine_applicatif.docx",
+      "required_data_fields": [
+        "application_id",
+        "client_id",
+        "product",
+        "backend",
+        "frontend",
+        "database_engine",
+        "repository_url",
+        "deployed_commit",
+        "environment",
+        "technical_owner",
+        "verification_status"
+      ],
+      "sections": [
+        "Synthèse du périmètre",
+        "Inventaire des applications",
+        "Environnements et déploiements",
+        "Dépendances et contraintes",
+        "Données à confirmer"
+      ]
+    },
+    {
+      "code": "L2",
+      "title": "Référentiel fonctionnel consolidé",
+      "template_file": "L2_Modele_Référentiel_fonctionnel_consolidé.docx",
+      "required_data_fields": [
+        "feature_id",
+        "module",
+        "submodule",
+        "label",
+        "description",
+        "client_id",
+        "presence_status",
+        "operational_status",
+        "source_sheet",
+        "source_row",
+        "workflow_id",
+        "verified_by"
+      ],
+      "sections": [
+        "Périmètre et méthode",
+        "Catalogue des fonctionnalités",
+        "Matrice des variantes clients",
+        "Workflows et règles métier",
+        "Écarts et validations métier",
+        "Traçabilité vers la revue d’origine"
+      ]
+    },
+    {
+      "code": "L3",
+      "title": "Cartographie technique",
+      "template_file": "L3_Modele_Cartographie_technique.docx",
+      "required_data_fields": [
+        "component_id",
+        "repository_id",
+        "technology",
+        "version",
+        "component_type",
+        "integration_id",
+        "database_engine",
+        "dependency_name",
+        "dependency_version",
+        "evidence_url"
+      ],
+      "sections": [
+        "Architecture actuelle",
+        "Composants et interfaces",
+        "API et intégrations",
+        "Bases de données et compatibilité",
+        "Versions et dépendances",
+        "Risques et hypothèses"
+      ]
+    },
+    {
+      "code": "L4",
+      "title": "Rapport de diagnostic par dépôt",
+      "template_file": "L4_Modele_Rapport_de_diagnostic_par_dépôt.docx",
+      "required_data_fields": [
+        "diagnostic_id",
+        "repository_id",
+        "commit",
+        "tool_name",
+        "tool_version",
+        "scan_date",
+        "finding_id",
+        "severity",
+        "evidence_url",
+        "verification_status",
+        "limitations"
+      ],
+      "sections": [
+        "Objet et référence analysée",
+        "Méthodologie et outils",
+        "Résultats vérifiables",
+        "Constats priorisés",
+        "Tests et limites de couverture",
+        "Recommandations et prochaines actions",
+        "Annexes et preuves"
+      ]
+    },
+    {
+      "code": "L5",
+      "title": "Registre consolidé de dette technique",
+      "template_file": "L5_Modele_Registre_consolidé_de_dette_technique.docx",
+      "required_data_fields": [
+        "debt_id",
+        "finding_type",
+        "client_id",
+        "repository_id",
+        "component_id",
+        "description",
+        "impact",
+        "severity",
+        "evidence_url",
+        "effort_min_days",
+        "effort_max_days",
+        "confidence",
+        "owner",
+        "status",
+        "gitlab_issue_url"
+      ],
+      "sections": [
+        "Synthèse par criticité et périmètre",
+        "Registre des constats",
+        "Risques transverses et mutualisation",
+        "Estimations et confiance",
+        "Décisions et actions liées"
+      ]
+    },
+    {
+      "code": "L6",
+      "title": "Tableau de bord DTI",
+      "template_file": "L6_Modele_Tableau_de_bord_DTI.docx",
+      "required_data_fields": [
+        "snapshot_date",
+        "applications_in_scope",
+        "repositories_inventoried",
+        "repositories_analyzed",
+        "features_reviewed",
+        "features_total",
+        "critical_findings",
+        "actions_open",
+        "actions_closed",
+        "audit_hours_planned",
+        "audit_hours_actual"
+      ],
+      "sections": [
+        "Résumé exécutif",
+        "Couverture de l’inventaire et des diagnostics",
+        "Risques et dette par criticité",
+        "Progression des actions",
+        "Capacité et interruptions support",
+        "Décisions en attente",
+        "Périmètre et limites des métriques"
+      ]
+    },
+    {
+      "code": "L7",
+      "title": "Stratégie de refactoring",
+      "template_file": "L7_Modele_Stratégie_de_refactoring.docx",
+      "required_data_fields": [
+        "strategy_id",
+        "scope",
+        "option_id",
+        "decision_id",
+        "risk_id",
+        "prerequisite",
+        "migration_phase",
+        "approval_status"
+      ],
+      "sections": [
+        "Contexte et objectifs",
+        "Constats issus des audits",
+        "Scénarios d’architecture",
+        "Comparaison et arbitrages",
+        "Stratégie de migration et compatibilité",
+        "Tests de non-régression et rollback",
+        "Risques, prérequis et décision proposée",
+        "Satis_SaaS — perspective future hors périmètre"
+      ]
+    },
+    {
+      "code": "L8",
+      "title": "Feuille de route de remédiation",
+      "template_file": "L8_Modele_Feuille_de_route_de_remédiation.docx",
+      "required_data_fields": [
+        "action_id",
+        "debt_id",
+        "priority",
+        "owner",
+        "start_date",
+        "due_date",
+        "effort_days",
+        "dependencies",
+        "status",
+        "acceptance_criteria",
+        "test_evidence",
+        "gitlab_issue_url"
+      ],
+      "sections": [
+        "Objectifs et priorités",
+        "Lots et jalons",
+        "Dépendances et responsabilités",
+        "Charge, capacité et calendrier",
+        "Critères de réception et tests",
+        "Risques et arbitrages",
+        "Suivi des actions"
+      ]
+    }
+  ]
+}
