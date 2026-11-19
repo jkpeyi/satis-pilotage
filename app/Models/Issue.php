@@ -6,6 +6,7 @@ use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['title', 'description', 'type', 'severity', 'status', 'proposed_solution', 'effort_days'])]
 class Issue extends Model
 {
-    use Archivable, HasUserstamps;
+    use Archivable, HasDisplayCode, HasUserstamps;
 
     public const CODE_PREFIX = 'PB-';
 
@@ -42,14 +43,6 @@ class Issue extends Model
             'status' => IssueStatus::class,
             'effort_days' => 'decimal:1',
         ];
-    }
-
-    /**
-     * Code shown to users, e.g. PB-0042 (RG-13).
-     */
-    public function displayCode(): string
-    {
-        return sprintf('%s%04d', self::CODE_PREFIX, $this->id);
     }
 
     /**

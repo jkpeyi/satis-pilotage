@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VersionStatus;
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\VersionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -19,7 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Version extends Model
 {
     /** @use HasFactory<VersionFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+
+    public const CODE_PREFIX = 'APP-';
 
     /**
      * @var array<string, mixed>

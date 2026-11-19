@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\HasDisplayCode;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,7 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
-    use Archivable, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+
+    public const CODE_PREFIX = 'CLI-';
 
     /**
      * @return HasMany<Version, $this>
