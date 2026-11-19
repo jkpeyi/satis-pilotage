@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\CatalogItem;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\HasDisplayCode;
+use App\Models\Concerns\HasNameKey;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\ModuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,12 +17,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Catalog module. A module with a parent is a sub-module; depth is unlimited (RG-01).
+ *
+ * @property string $name_key Comparison key of the name (App\Support\CatalogName), kept in sync on save.
  */
 #[Fillable(['parent_id', 'code', 'name', 'standard_description', 'position'])]
 class Module extends Model implements CatalogItem
 {
     /** @use HasFactory<ModuleFactory> */
-    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasNameKey, HasUserstamps;
 
     public const CODE_PREFIX = 'MOD-';
 
@@ -73,5 +76,15 @@ class Module extends Model implements CatalogItem
     public function typeLabel(): string
     {
         return $this->isSubmodule() ? 'Sous-module' : 'Module';
+    }
+
+    /**
+     * Features whose main module is elsewhere but which also appear under this module (RG-16).
+     *
+     * @return BelongsToMany<Feature, $this>
+     */
+    public function sharedFeatures(): BelongsToMany
+    {
+        return $this->belongsToMany(Feature::class, 'module_feature')->withPivot('position')->orderByPivot('position');
     }
 }

@@ -47,7 +47,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Statut de vérification | `VerificationStatus` (`Verifiable` concern: records who decided and when) |
 | Technologie, stack | `Technology`, `stack` |
 | Module, sous-module | `Module` (a sub-module is a `Module` with a `parent_id`) |
-| Fonctionnalité | `Feature` |
+| Fonctionnalité | `Feature` (`module_id` is its main module; `otherModules()` through `module_feature`, RG-16) |
 | Élément (generic) | `CatalogItem` interface, implemented by `Module` and `Feature` (not a table) |
 | Rattachement | `Implementation` |
 | État | `ImplementationStatus`: one value per valid (presence, operation) pair of the README d'intégration |
@@ -93,6 +93,8 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-12** Records are archived, not deleted. Detaching an item that has rules or issues requires confirmation.
 - **RG-13** `RM-` and `PB-` codes are derived from the auto-increment id and never reused.
 - **RG-14** Converting a feature to a sub-module (or the reverse) keeps the existing implementations with their rules, issues and history.
+- **RG-16** A feature exists once in the catalog but may appear under several modules: `features.module_id` is its main module (its path in reports, the branch attached with it, RG-04), `module_feature` lists the other modules. It keeps one implementation per version wherever it is shown. Use `LinkFeatureToModule` rather than creating a copy; a sub-module and a feature describing the same thing are combined with `ReuniteSubmoduleWithFeature`. `CatalogTree::featureIds()` returns a module's own features only (each feature counted once in the matrix and reports); `sharedFeatureIds()` the features shared into it.
+- **RG-15** A name is unique across the whole catalog, modules, sub-modules and features together, among active items; case, accents and punctuation are ignored (`CatalogName::key`, `EnsureUniqueCatalogName`). Every name entry suggests existing items so that they are reused (moved here, attached) rather than duplicated. Duplicates are merged with `MergeCatalogItems` (everything moves to the kept item, the duplicate is deleted and logged in `catalog_merges`), from the « Doublons » screen or `php artisan catalog:merge-duplicates`.
 
 ## Reports (SPEC-001 deliverables)
 

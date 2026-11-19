@@ -11,6 +11,10 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!-- Tests that change the schema (no transaction): they rebuild the database themselves. -->
+        <testsuite name="Maintenance">
+            <directory>tests/Maintenance</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

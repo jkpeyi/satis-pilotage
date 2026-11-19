@@ -9,9 +9,11 @@ use App\Actions\Implementations\DetachCatalogItems;
 use App\Actions\Implementations\InitializeVersionFrom;
 use App\Enums\ImplementationStatus;
 use App\Exceptions\DetachRequiresConfirmation;
+use App\Exceptions\DuplicateCatalogItem;
 use App\Models\Implementation;
 use App\Models\User;
 use App\Models\Version;
+use App\Queries\CatalogSearch;
 use App\Queries\CatalogTree;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -161,10 +163,34 @@ class Scope extends Component
 
         /** @var 'module'|'feature' $kind */
         $kind = $this->newKind;
-        $createCatalogItemInVersion->handle($this->version, $kind, $this->newName, $this->newParentId !== '' ? (int) $this->newParentId : null);
+        try {
+            $createCatalogItemInVersion->handle($this->version, $kind, $this->newName, $this->newParentId !== '' ? (int) $this->newParentId : null);
+        } catch (DuplicateCatalogItem $exception) {
+            $this->addError('newName', $exception->getMessage());
+
+            return;
+        }
 
         $this->reset('newName');
         $this->dispatch('notify', message: 'Élément créé dans le catalogue et rattaché à cette version.');
+    }
+
+    /**
+     * The typed name already exists in the catalog: attach that item (and its ancestors, RG-04)
+     * instead of creating a duplicate.
+     */
+    public function attachExisting(string $key, AttachCatalogItems $attachCatalogItems): void
+    {
+        [$type, $id] = array_pad(explode(':', $key, 2), 2, '0');
+        $id = (int) $id;
+
+        $count = $type === 'module'
+            ? $attachCatalogItems->handle([$this->version->id], [$id], [], $this->attachWithDescendants)
+            : $attachCatalogItems->handle([$this->version->id], [], [$id]);
+
+        $this->reset('newName');
+        $this->resetValidation('newName');
+        $this->dispatch('notify', message: "Élément existant rattaché ({$count} rattachement(s)).");
     }
 
     public function initialize(InitializeVersionFrom $initializeVersionFrom): void
@@ -201,8 +227,14 @@ class Scope extends Component
         $byModule = $implementations->whereNotNull('module_id')->keyBy('module_id');
         $byFeature = $implementations->whereNotNull('feature_id')->keyBy('feature_id');
 
+        $suggestions = $this->showCreate ? app(CatalogSearch::class)->search($this->newName, 6) : [];
+
         return view('livewire.versions.scope', [
             'tree' => $tree,
+            'newSuggestions' => array_map(fn (array $suggestion): array => [
+                ...$suggestion,
+                'attached' => $suggestion['type'] === 'module' ? $byModule->has($suggestion['id']) : $byFeature->has($suggestion['id']),
+            ], $suggestions),
             'byModule' => $byModule,
             'byFeature' => $byFeature,
             'counts' => collect(ImplementationStatus::cases())->mapWithKeys(fn (ImplementationStatus $status): array => [

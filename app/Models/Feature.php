@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\CatalogItem;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\HasDisplayCode;
+use App\Models\Concerns\HasNameKey;
 use App\Models\Concerns\HasUserstamps;
 use Database\Factories\FeatureFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,12 +17,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Catalog feature. Always belongs to a module or a sub-module (RG-01).
+ *
+ * @property string $name_key Comparison key of the name (App\Support\CatalogName), kept in sync on save.
  */
 #[Fillable(['module_id', 'code', 'name', 'standard_description', 'position'])]
 class Feature extends Model implements CatalogItem
 {
     /** @use HasFactory<FeatureFactory> */
-    use Archivable, HasDisplayCode, HasFactory, HasUserstamps;
+    use Archivable, HasDisplayCode, HasFactory, HasNameKey, HasUserstamps;
 
     public const CODE_PREFIX = 'FCT-';
 
@@ -52,5 +55,15 @@ class Feature extends Model implements CatalogItem
     public function typeLabel(): string
     {
         return 'Fonctionnalité';
+    }
+
+    /**
+     * Other modules the feature also appears under (RG-16); module() is its main module.
+     *
+     * @return BelongsToMany<Module, $this>
+     */
+    public function otherModules(): BelongsToMany
+    {
+        return $this->belongsToMany(Module::class, 'module_feature')->withPivot('position')->orderBy('modules.name');
     }
 }
