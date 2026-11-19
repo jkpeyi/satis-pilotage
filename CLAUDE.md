@@ -56,6 +56,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Écart | `deviation` |
 | Description standard | `standard_description` |
 | Règle métier | `BusinessRule` (displayed `RM-0042`) |
+| Composant, intégration | `Component` (displayed `CMP-0001`, a technical part of a version), `Integration` (`INT-0001`, from a component to another component or to an `external_system`: exactly one target, CHECK) |
 | Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s) |
 | Problème | `Issue` (displayed `PB-0042`) |
 | Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |

@@ -6,6 +6,7 @@
         </x-slot:breadcrumbs>
         <x-slot:actions>
             <x-ui.button :href="route('versions.scope', $version)">Périmètre fonctionnel</x-ui.button>
+            <x-ui.button variant="secondary" :href="route('versions.architecture', $version)">Architecture</x-ui.button>
             <x-ui.button variant="secondary" :href="route('versions.compare', ['a' => $version->id, 'b' => $version->product->reference_version_id !== $version->id ? $version->product->reference_version_id : null])">Comparer avec…</x-ui.button>
             @if (! $version->isReferenceOfItsProduct() && ! $version->isArchived())
                 <x-ui.button variant="secondary" wire:click="makeReference">Définir comme référence</x-ui.button>
