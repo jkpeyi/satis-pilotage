@@ -35,11 +35,35 @@ Avant chaque livraison :
 composer check   # Pint, Larastan, tests (base satis_test)
 ```
 
+## Unicité du catalogue
+
+Un nom de module, sous-module ou fonctionnalité n'existe qu'une fois dans tout le catalogue (majuscules, accents et ponctuation ignorés). La saisie propose les éléments existants pour les réutiliser. L'écran « Catalogue › Doublons » liste les noms identiques ou proches et permet de les fusionner.
+
+Mise à jour d'une base qui contient déjà des doublons : `php artisan migrate` s'arrête et indique la marche à suivre.
+
+```bash
+php artisan catalog:merge-duplicates          # aperçu, ne modifie rien
+php artisan catalog:merge-duplicates --force  # fusionne et supprime les doublons
+php artisan migrate                           # pose ensuite la contrainte d'unicité
+```
+
+Une fonctionnalité n'existe qu'une fois mais peut apparaître dans plusieurs modules : dans la saisie rapide, « Ajouter ici » la lie au module en cours au lieu d'en créer une copie, et sa fiche liste ses modules (principal et autres). Un sous-module et une fonctionnalité de même nom se réunissent depuis l'écran « Doublons » (bouton « Réunir ») ou avec la commande ci-dessus.
+
+Chaque fusion transfère à l'élément conservé les rattachements, règles métier, problèmes, historiques, sous-éléments et étapes de workflow, puis supprime le doublon ; elle est tracée dans la table `catalog_merges`. Un module racine qui porte le nom d'une fonctionnalité est seulement signalé : il ne peut pas devenir une fonctionnalité.
+
 ## Rapports (livrables DTI)
 
 L'écran « Rapports » génère les livrables du plan DTI (SPEC-001) à partir des données de l'application : un document Word rempli depuis le modèle de `resources/report-templates`, et une annexe XLSX avec les tableaux complets. Chaque export est figé (instantané des données, empreintes SHA-256) et conservé dans `storage/app/private/reports`. Les données absentes de l'application apparaissent « À confirmer ».
 
 Livrables exportables à ce jour : L1, L2 et L3. Les autres modèles sont en place et seront branchés au fil des lots. L'annexe XLSX est écrite en flux : un rapport de plusieurs dizaines de milliers de lignes reste sous 150 Mo de mémoire.
+
+## Technologies
+
+Les technologies saisies sur un dépôt (stack), un composant ou un environnement (moteur de base, version PHP) s'ajoutent automatiquement au référentiel « Technologies », sans date de fin de support : il ne reste qu'à la renseigner (filtre « Seulement les dates à renseigner »). Pour reprendre ce qui a été saisi avant cette fonction :
+
+```bash
+php artisan technologies:sync
+```
 
 ## Comptes
 

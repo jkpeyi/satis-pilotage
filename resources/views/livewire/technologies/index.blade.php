@@ -1,9 +1,17 @@
 <div>
-    <x-ui.page-header title="Technologies" description="Dates de fin de support utilisées pour signaler les stacks obsolètes.">
+    <x-ui.page-header title="Technologies" description="Dates de fin de support utilisées pour signaler les stacks obsolètes. Les technologies saisies sur les dépôts, composants et environnements s'ajoutent ici automatiquement.">
         <x-slot:actions>
+            <x-ui.button variant="secondary" wire:click="sync">Récupérer depuis les versions</x-ui.button>
             <x-ui.button wire:click="create">Ajouter un cycle</x-ui.button>
         </x-slot:actions>
     </x-ui.page-header>
+
+    <div class="mb-4 flex flex-wrap items-center gap-4">
+        @if ($missing > 0)
+            <p class="text-sm text-amber-800">{{ $missing }} cycle(s) sans date de fin de support : renseignez-la pour suivre l'obsolescence.</p>
+        @endif
+        <x-ui.archived-toggle wire:model.live="onlyMissing">Seulement les dates à renseigner</x-ui.archived-toggle>
+    </div>
 
     @if ($technologies->isEmpty())
         <x-ui.empty>
@@ -17,7 +25,7 @@
                         @foreach ($cycles as $technology)
                             <li class="flex items-center justify-between gap-4 py-2" wire:key="technology-{{ $technology->id }}">
                                 <span class="font-mono">{{ $technology->cycle }}</span>
-                                <span class="flex-1 text-slate-500">{{ $technology->end_of_support?->format('d/m/Y') ?? 'Date inconnue' }}</span>
+                                <span @class(['flex-1', 'text-slate-500' => $technology->end_of_support, 'font-medium text-amber-800' => ! $technology->end_of_support])>{{ $technology->end_of_support?->format('d/m/Y') ?? 'À renseigner' }}</span>
                                 <x-ui.badge :color="$statuses[$technology->id]->color()">{{ $statuses[$technology->id]->label() }}</x-ui.badge>
                                 <span class="whitespace-nowrap">
                                     <x-ui.button size="sm" variant="ghost" wire:click="edit({{ $technology->id }})">Modifier</x-ui.button>

@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/versions/{version}/architecture', Versions\Architecture::class)->name('versions.architecture');
 
     Route::livewire('/catalog', Catalog\Index::class)->name('catalog.index');
+    Route::livewire('/catalog/duplicates', Catalog\Duplicates::class)->name('catalog.duplicates');
     Route::livewire('/comparison', ComparisonMatrix\Index::class)->name('comparison.index');
     Route::livewire('/workflows', Workflows\Index::class)->name('workflows.index');
     Route::livewire('/workflows/{workflow}', Workflows\Show::class)->name('workflows.show');

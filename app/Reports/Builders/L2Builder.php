@@ -150,6 +150,7 @@ final class L2Builder implements ReportBuilder
             ->column('module', 'Module')
             ->column('submodule', 'Sous-module')
             ->column('label', 'Fonctionnalité')
+            ->column('other_modules', 'Aussi dans', required: false)
             ->column('description', 'Description standard')
             ->column('source_sheet', 'Feuille source')
             ->column('source_row', 'Ligne source');
@@ -162,6 +163,10 @@ final class L2Builder implements ReportBuilder
                 'module' => $path[0] ?? null,
                 'submodule' => count($path) > 1 ? implode(' › ', array_slice($path, 1)) : 'Sans objet',
                 'label' => $catalog->tree->features[$featureId]['name'],
+                // A shared feature (RG-16) is listed once, under its main module.
+                'other_modules' => collect($catalog->tree->otherModuleIds($featureId))
+                    ->map(fn (int $moduleId): string => $catalog->tree->modules[$moduleId]['name'])
+                    ->sort()->implode(', '),
                 'description' => $this->plainText($features->get($featureId)?->standard_description),
                 // Filled by the import of the functional review (937 observations), not available yet.
                 'source_sheet' => null,

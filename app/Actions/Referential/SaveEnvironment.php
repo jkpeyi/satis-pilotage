@@ -8,6 +8,8 @@ use DomainException;
 
 final class SaveEnvironment
 {
+    public function __construct(private readonly SyncTechnologiesFromEstate $sync, private readonly RegisterTechnologies $registerTechnologies) {}
+
     /**
      * @param  array{version_id: int, repository_id: ?int, type: EnvironmentType, name: string, url: ?string, deployed_ref: ?string, database_engine: ?string, database_version: ?string, php_version: ?string, server: ?string, notes: ?string}  $data
      */
@@ -21,6 +23,7 @@ final class SaveEnvironment
         }
 
         $environment->save();
+        $this->registerTechnologies->handle($this->sync->environmentStack($environment));
 
         return $environment;
     }

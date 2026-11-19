@@ -7,6 +7,7 @@ use App\Models\Feature;
 use App\Models\Module;
 use App\Models\Product;
 use App\Models\Version;
+use App\Support\CatalogName;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +36,7 @@ class VolumeSeeder extends Seeder
                 $sub = Module::query()->create(['name' => "Sous-module {$m}.{$s}", 'parent_id' => $root->id, 'position' => $s]);
                 $features = [];
                 for ($f = 1; $f <= 4; $f++) {
-                    $features[] = ['module_id' => $sub->id, 'name' => "Fonctionnalité {$m}.{$s}.{$f}", 'position' => $f, 'created_at' => $now, 'updated_at' => $now];
+                    $features[] = ['module_id' => $sub->id, 'name' => $name = "Fonctionnalité {$m}.{$s}.{$f}", 'name_key' => CatalogName::key($name), 'position' => $f, 'created_at' => $now, 'updated_at' => $now];
                 }
                 Feature::query()->insert($features);
             }

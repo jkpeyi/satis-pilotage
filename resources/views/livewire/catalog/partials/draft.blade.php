@@ -9,7 +9,7 @@
                     @class(['px-1.5 py-0.5', 'bg-brand-700 text-white' => $draft['kind'] === 'feature', 'bg-white text-slate-500' => $draft['kind'] !== 'feature'])>Fonctionnalité</button>
             @endif
         </span>
-        <input type="text" wire:model="draftName" x-init="$el.focus()"
+        <input type="text" wire:model.live.debounce.250ms="draftName" x-init="$el.focus()"
             placeholder="{{ $draft['kind'] === 'feature' ? 'Nouvelle fonctionnalité…' : ($draft['parent_id'] ? 'Nouveau sous-module…' : 'Nouveau module…') }}"
             x-on:keydown.enter.prevent="$wire.saveDraft()"
             x-on:keydown.tab.prevent="$event.shiftKey ? $wire.outdentDraft() : $wire.indentDraft()"
@@ -20,4 +20,37 @@
         <button type="button" wire:click="cancelDraft" class="text-xs text-slate-500 hover:text-slate-900">Fermer</button>
     </div>
     @error('draftName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+    @if ($draftSuggestions !== [])
+        {{-- Names are unique in the whole catalog: reuse an existing item rather than creating a duplicate. --}}
+        <div class="mt-1 rounded-md border border-slate-200 bg-white text-xs shadow-sm">
+            <p class="border-b border-slate-100 px-2 py-1 text-slate-500">Déjà dans le catalogue :</p>
+            <ul class="divide-y divide-slate-100">
+                @foreach ($draftSuggestions as $suggestion)
+                    <li class="flex items-center gap-2 px-2 py-1" wire:key="draft-suggestion-{{ $suggestion['key'] }}">
+                        <span class="min-w-0 flex-1 truncate" title="{{ $suggestion['path'] }}">
+                            <span @class(['font-semibold text-slate-900' => $suggestion['exact'], 'text-slate-700' => ! $suggestion['exact']])>{{ $suggestion['name'] }}</span>
+                            <span class="text-slate-400">· {{ $suggestion['type'] === 'feature' ? 'fonctionnalité' : 'module' }} · {{ $suggestion['path'] }}</span>
+                        </span>
+                        @if ($suggestion['exact']) <x-ui.badge color="amber">Même nom</x-ui.badge> @endif
+                        @if ($suggestion['archived'])
+                            <x-ui.badge>Archivé</x-ui.badge>
+                            <button type="button" wire:click="restoreExisting('{{ $suggestion['key'] }}')" class="font-medium text-brand-700 hover:underline">Restaurer</button>
+                        @else
+                            @if ($suggestion['type'] === 'feature' && $draft['parent_id'] !== null)
+                                <button type="button" wire:click="linkExistingHere('{{ $suggestion['key'] }}')"
+                                    title="La même fonctionnalité apparaîtra aussi dans ce module, sans copie."
+                                    class="font-medium text-brand-700 hover:underline">Ajouter ici</button>
+                            @endif
+                            @if ($suggestion['type'] === 'module' || $draft['parent_id'] !== null)
+                                <button type="button" wire:click="moveExistingHere('{{ $suggestion['key'] }}')"
+                                    wire:confirm="Déplacer « {{ $suggestion['name'] }} » ici, avec ses sous-éléments et ses rattachements ?"
+                                    class="font-medium text-brand-700 hover:underline">Déplacer ici</button>
+                            @endif
+                            <button type="button" wire:click="select('{{ $suggestion['key'] }}')" class="font-medium text-slate-600 hover:underline">Ouvrir</button>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </li>

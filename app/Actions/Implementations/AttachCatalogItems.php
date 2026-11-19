@@ -88,7 +88,8 @@ final class AttachCatalogItems
 
             if ($withDescendants) {
                 array_push($modules, ...$tree->descendantModuleIds($moduleId));
-                array_push($features, ...$tree->featureIdsInSubtree($moduleId));
+                // Features shared into the subtree come too, without their main module's branch (RG-16).
+                array_push($features, ...$tree->featureIdsInSubtree($moduleId, withShared: true));
             }
         }
 

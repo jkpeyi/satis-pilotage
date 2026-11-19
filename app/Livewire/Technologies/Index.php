@@ -3,6 +3,7 @@
 namespace App\Livewire\Technologies;
 
 use App\Actions\Referential\SaveTechnology;
+use App\Actions\Referential\SyncTechnologiesFromEstate;
 use App\Enums\SupportStatus;
 use App\Livewire\Forms\TechnologyForm;
 use App\Models\Technology;
@@ -19,6 +20,21 @@ class Index extends Component
     public TechnologyForm $form;
 
     public bool $showForm = false;
+
+    /** Only the cycles whose end-of-support date is still unknown. */
+    public bool $onlyMissing = false;
+
+    /**
+     * Brings in the technologies already entered on repositories, components and environments.
+     */
+    public function sync(SyncTechnologiesFromEstate $syncTechnologies): void
+    {
+        $added = $syncTechnologies->handle();
+
+        $this->dispatch('notify', message: $added === 0
+            ? 'Toutes les technologies des versions sont déjà dans le référentiel.'
+            : "{$added} cycle(s) ajouté(s) depuis les versions : renseignez leur date de fin de support.");
+    }
 
     public function create(): void
     {
@@ -47,10 +63,14 @@ class Index extends Component
 
     public function render(): View
     {
-        $technologies = Technology::query()->orderBy('component')->get()
+        $missing = Technology::query()->whereNull('end_of_support')->count();
+        $technologies = Technology::query()
+            ->when($this->onlyMissing, fn ($query) => $query->whereNull('end_of_support'))
+            ->orderBy('component')->get()
             ->sort(fn (Technology $a, Technology $b): int => [$a->component, version_compare($b->cycle, $a->cycle)] <=> [$b->component, 0]);
 
         return view('livewire.technologies.index', [
+            'missing' => $missing,
             'technologies' => $technologies->groupBy('component'),
             'statuses' => $technologies->mapWithKeys(fn (Technology $technology): array => [
                 $technology->id => match (true) {

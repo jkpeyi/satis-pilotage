@@ -17,6 +17,8 @@ final class MoveFeature
 
             $feature->module()->associate($module);
             $feature->save();
+            // Its new main module can no longer be one of its other modules (RG-16).
+            DB::table('module_feature')->where('feature_id', $feature->id)->where('module_id', $module->id)->delete();
 
             $this->positions->insert($feature, $position);
 

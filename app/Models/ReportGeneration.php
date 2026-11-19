@@ -9,6 +9,8 @@ use LogicException;
 
 /**
  * One generated deliverable. Immutable once its files are written: a new export is a new row.
+ * Deleting an export removes its files and marks the row (deleted_at, deleted_by), which stays
+ * as a trace so that document ids and version numbers are never reused.
  */
 #[Fillable([
     'code', 'title', 'scope', 'scope_hash', 'scope_label', 'template_file', 'template_version', 'status',
@@ -29,7 +31,8 @@ class ReportGeneration extends Model
     protected static function booted(): void
     {
         static::updating(function (ReportGeneration $generation): void {
-            if ($generation->getOriginal('docx_path') !== null) {
+            $onlyDeletion = array_diff(array_keys($generation->getDirty()), ['deleted_at', 'deleted_by']) === [];
+            if ($generation->getOriginal('docx_path') !== null && ! $onlyDeletion) {
                 throw new LogicException('A generated report is immutable.');
             }
         });
@@ -47,6 +50,7 @@ class ReportGeneration extends Model
         return [
             'scope' => 'array',
             'completeness' => 'decimal:2',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -56,6 +60,19 @@ class ReportGeneration extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted_at !== null;
     }
 
     /**

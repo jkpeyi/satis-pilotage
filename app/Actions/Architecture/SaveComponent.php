@@ -2,6 +2,7 @@
 
 namespace App\Actions\Architecture;
 
+use App\Actions\Referential\RegisterTechnologies;
 use App\Enums\ComponentType;
 use App\Enums\VerificationStatus;
 use App\Models\Component;
@@ -10,6 +11,8 @@ use DomainException;
 
 final class SaveComponent
 {
+    public function __construct(private readonly RegisterTechnologies $registerTechnologies) {}
+
     /**
      * @param  array{version_id: int, repository_id: ?int, name: string, type: ComponentType, technology: ?string, technology_version: ?string, description: ?string, evidence_url: ?string, verification_status: VerificationStatus}  $data
      */
@@ -24,6 +27,10 @@ final class SaveComponent
         $component->fill(collect($data)->except('verification_status')->all());
         $component->applyVerificationStatus($data['verification_status']);
         $component->save();
+
+        if ($component->technology !== null) {
+            $this->registerTechnologies->handle([$component->technology => $component->technology_version]);
+        }
 
         return $component;
     }

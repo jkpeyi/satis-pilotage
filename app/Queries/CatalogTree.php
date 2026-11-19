@@ -4,6 +4,7 @@ namespace App\Queries;
 
 use App\Models\Feature;
 use App\Models\Module;
+use Illuminate\Support\Facades\DB;
 
 /**
  * In-memory snapshot of the catalog hierarchy (ids, names, parents, positions).
@@ -22,8 +23,14 @@ final class CatalogTree
     /** @var array<int, list<int>> parent module id (0 for roots) => child module ids */
     private array $childModules = [];
 
-    /** @var array<int, list<int>> module id => feature ids */
+    /** @var array<int, list<int>> module id => feature ids whose main module it is */
     private array $moduleFeatures = [];
+
+    /** @var array<int, list<int>> module id => features that also appear under it (RG-16) */
+    private array $sharedFeatures = [];
+
+    /** @var array<int, list<int>> feature id => other modules it appears under */
+    private array $featureOtherModules = [];
 
     public static function load(bool $withArchived = false): self
     {
@@ -63,6 +70,14 @@ final class CatalogTree
                 $tree->moduleFeatures[(int) $row->module_id][] = (int) $row->id;
             });
 
+        DB::table('module_feature')->orderBy('position')->orderBy('feature_id')->get(['module_id', 'feature_id'])
+            ->each(function (object $row) use ($tree): void {
+                if (isset($tree->modules[(int) $row->module_id], $tree->features[(int) $row->feature_id])) {
+                    $tree->sharedFeatures[(int) $row->module_id][] = (int) $row->feature_id;
+                    $tree->featureOtherModules[(int) $row->feature_id][] = (int) $row->module_id;
+                }
+            });
+
         return $tree;
     }
 
@@ -90,9 +105,29 @@ final class CatalogTree
         return $this->moduleFeatures[$moduleId] ?? [];
     }
 
+    /**
+     * Features shown under a module although their main module is another one (RG-16).
+     *
+     * @return list<int>
+     */
+    public function sharedFeatureIds(int $moduleId): array
+    {
+        return $this->sharedFeatures[$moduleId] ?? [];
+    }
+
+    /**
+     * Other modules a feature appears under, besides its main module.
+     *
+     * @return list<int>
+     */
+    public function otherModuleIds(int $featureId): array
+    {
+        return $this->featureOtherModules[$featureId] ?? [];
+    }
+
     public function hasChildren(int $moduleId): bool
     {
-        return $this->childModuleIds($moduleId) !== [] || $this->featureIds($moduleId) !== [];
+        return $this->childModuleIds($moduleId) !== [] || $this->featureIds($moduleId) !== [] || $this->sharedFeatureIds($moduleId) !== [];
     }
 
     /**
@@ -143,19 +178,23 @@ final class CatalogTree
     }
 
     /**
-     * Features of a module and of all its descendants.
+     * Features of a module and of all its descendants: those whose main module is in the subtree,
+     * plus, with $withShared, those that also appear in it (RG-16).
      *
      * @return list<int>
      */
-    public function featureIdsInSubtree(int $moduleId): array
+    public function featureIdsInSubtree(int $moduleId, bool $withShared = false): array
     {
-        $featureIds = $this->featureIds($moduleId);
+        $featureIds = [];
 
-        foreach ($this->descendantModuleIds($moduleId) as $descendantId) {
-            array_push($featureIds, ...$this->featureIds($descendantId));
+        foreach ([$moduleId, ...$this->descendantModuleIds($moduleId)] as $id) {
+            array_push($featureIds, ...$this->featureIds($id));
+            if ($withShared) {
+                array_push($featureIds, ...$this->sharedFeatureIds($id));
+            }
         }
 
-        return $featureIds;
+        return array_values(array_unique($featureIds));
     }
 
     public function depth(int $moduleId): int

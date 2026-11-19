@@ -10,13 +10,18 @@ use Illuminate\Support\Facades\DB;
  */
 final class CreateModule
 {
-    public function __construct(private readonly Positions $positions) {}
+    public function __construct(
+        private readonly Positions $positions,
+        private readonly EnsureUniqueCatalogName $ensureUniqueName,
+    ) {}
 
     /**
      * @param  array{name: string, parent_id?: ?int, code?: ?string, standard_description?: ?string}  $data
      */
     public function handle(array $data, ?int $position = null): Module
     {
+        $this->ensureUniqueName->handle($data['name']);
+
         return DB::transaction(function () use ($data, $position): Module {
             $module = Module::query()->create([
                 'name' => trim($data['name']),

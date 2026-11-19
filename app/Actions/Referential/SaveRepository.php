@@ -10,6 +10,8 @@ use App\Models\Repository;
  */
 final class SaveRepository
 {
+    public function __construct(private readonly RegisterTechnologies $registerTechnologies) {}
+
     /**
      * @param  array{version_id: int, path: string, web_url: ?string, role: RepositoryRole, production_branch: string, active_branches: list<string>, stack: array<string, string>}  $data
      */
@@ -22,6 +24,7 @@ final class SaveRepository
         $data['active_branches'] = array_values(array_unique(array_filter(array_map('trim', $data['active_branches']))));
 
         $repository->fill($data)->save();
+        $this->registerTechnologies->handle($data['stack']);
 
         return $repository;
     }
