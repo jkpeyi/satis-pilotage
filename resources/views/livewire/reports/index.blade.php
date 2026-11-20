@@ -4,7 +4,7 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <x-ui.card title="Générer un livrable" class="lg:col-span-1">
             <form wire:submit="generate" class="space-y-4">
-                <x-ui.select label="Livrable" wire:model="form.code" required>
+                <x-ui.select label="Livrable" wire:model.live="form.code" required>
                     @foreach ($deliverables as $code => $deliverable)
                         <option value="{{ $code }}" @disabled(! in_array($code, $exportable, true))>
                             {{ $code }} — {{ $deliverable['title'] }}{{ in_array($code, $exportable, true) ? '' : ' (à venir)' }}
@@ -12,7 +12,11 @@
                     @endforeach
                 </x-ui.select>
                 <x-ui.select label="Produit" wire:model.live="form.product_id" :options="$products" placeholder="Choisir un produit" required />
-                <x-ui.select label="Client" wire:model="form.customer_id" :options="$customers" placeholder="Tous les clients" hint="Restreint le rapport aux versions de ce client." />
+                @if ($form->code === 'L4')
+                    <x-ui.select label="Campagne de diagnostic" wire:model="form.campaign_id" :options="$campaigns" placeholder="Choisir une campagne" required hint="L4 porte sur un dépôt analysé à un commit précis." />
+                @else
+                    <x-ui.select label="Client" wire:model="form.customer_id" :options="$customers" placeholder="Tous les clients" hint="Restreint le rapport aux versions de ce client." />
+                @endif
 
                 <x-ui.button type="submit" wire:loading.attr="disabled" wire:target="generate">
                     <span wire:loading.remove wire:target="generate">Générer DOCX et XLSX</span>

@@ -103,7 +103,8 @@ final class DocxRenderer
         }
 
         $max = (int) config('reports.docx_max_rows');
-        $size = count($section->columns()) > 8 ? 7 : 8;
+        $columns = $section->documentColumns();
+        $size = count($columns) > 8 ? 7 : 8;
         $shown = array_slice($rows, 0, $max);
 
         $table = new Table([
@@ -115,13 +116,13 @@ final class DocxRenderer
         ]);
 
         $header = $table->addRow(null, ['tblHeader' => true, 'cantSplit' => true]);
-        foreach ($section->columns() as $column) {
+        foreach ($columns as $column) {
             $header->addCell(null, ['bgColor' => self::HEADER_FILL])->addText($column['label'], ['bold' => true, 'size' => $size]);
         }
 
         foreach ($shown as $row) {
             $tableRow = $table->addRow(null, ['cantSplit' => true]);
-            foreach ($section->columns() as $column) {
+            foreach ($columns as $column) {
                 $value = $row[$column['key']];
                 $cell = $tableRow->addCell();
                 if ($value !== null) {

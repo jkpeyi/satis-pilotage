@@ -8,7 +8,7 @@ namespace App\Reports\Content;
  */
 final class TableSection
 {
-    /** @var list<array{key: string, label: string, required: bool}> */
+    /** @var list<array{key: string, label: string, required: bool, in_document: bool}> */
     private array $columns = [];
 
     /** @var list<array<string, string|null>> */
@@ -16,9 +16,13 @@ final class TableSection
 
     public function __construct(public readonly string $title) {}
 
-    public function column(string $key, string $label, bool $required = true): self
+    /**
+     * A column not in the document (same value on every row, e.g. the analyzed commit) is still
+     * written in the XLSX annex.
+     */
+    public function column(string $key, string $label, bool $required = true, bool $inDocument = true): self
     {
-        $this->columns[] = ['key' => $key, 'label' => $label, 'required' => $required];
+        $this->columns[] = ['key' => $key, 'label' => $label, 'required' => $required, 'in_document' => $inDocument];
 
         return $this;
     }
@@ -39,11 +43,19 @@ final class TableSection
     }
 
     /**
-     * @return list<array{key: string, label: string, required: bool}>
+     * @return list<array{key: string, label: string, required: bool, in_document: bool}>
      */
     public function columns(): array
     {
         return $this->columns;
+    }
+
+    /**
+     * @return list<array{key: string, label: string, required: bool, in_document: bool}>
+     */
+    public function documentColumns(): array
+    {
+        return array_values(array_filter($this->columns, fn (array $column): bool => $column['in_document']));
     }
 
     /**

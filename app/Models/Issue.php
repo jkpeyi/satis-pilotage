@@ -100,4 +100,14 @@ class Issue extends Model
     {
         return $this->hasMany(CodeSnippet::class);
     }
+
+    /**
+     * Tool results retained in this problem (L4).
+     *
+     * @return HasMany<DiagnosticFinding, $this>
+     */
+    public function diagnosticFindings(): HasMany
+    {
+        return $this->hasMany(DiagnosticFinding::class);
+    }
 }

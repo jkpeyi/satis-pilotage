@@ -3,6 +3,7 @@
 namespace App\Reports;
 
 use App\Models\Customer;
+use App\Models\DiagnosticCampaign;
 use App\Models\Product;
 
 /**
@@ -13,6 +14,8 @@ final readonly class ReportScope
     public function __construct(
         public int $productId,
         public ?int $customerId = null,
+        // L4 is generated per diagnostic campaign (one repository at one commit).
+        public ?int $campaignId = null,
     ) {}
 
     /**
@@ -23,15 +26,20 @@ final readonly class ReportScope
         return new self(
             (int) $values['product_id'],
             isset($values['customer_id']) && $values['customer_id'] !== '' ? (int) $values['customer_id'] : null,
+            isset($values['campaign_id']) && $values['campaign_id'] !== '' ? (int) $values['campaign_id'] : null,
         );
     }
 
     /**
-     * @return array{product_id: int, customer_id: ?int}
+     * The campaign appears only when set, so that the scopes (and version numbers) of the other
+     * deliverables stay unchanged.
+     *
+     * @return array{product_id: int, customer_id: ?int, campaign_id?: int}
      */
     public function toArray(): array
     {
-        return ['product_id' => $this->productId, 'customer_id' => $this->customerId];
+        return ['product_id' => $this->productId, 'customer_id' => $this->customerId]
+            + ($this->campaignId !== null ? ['campaign_id' => $this->campaignId] : []);
     }
 
     public function hash(): string
@@ -49,10 +57,17 @@ final readonly class ReportScope
         return $this->customerId !== null ? Customer::query()->find($this->customerId) : null;
     }
 
+    public function campaign(): ?DiagnosticCampaign
+    {
+        return $this->campaignId !== null ? DiagnosticCampaign::query()->with('repository.version.customer')->find($this->campaignId) : null;
+    }
+
     public function label(): string
     {
         $customer = $this->customer();
+        $campaign = $this->campaign();
 
-        return $this->product()->name.($customer !== null ? ' · '.$customer->name : '');
+        return $this->product()->name.($customer !== null ? ' · '.$customer->name : '')
+            .($campaign !== null ? ' · '.$campaign->displayCode().' '.$campaign->repository->path.' @ '.$campaign->shortCommit() : '');
     }
 }

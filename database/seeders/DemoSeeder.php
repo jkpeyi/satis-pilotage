@@ -4,19 +4,27 @@ namespace Database\Seeders;
 
 use App\Actions\Catalog\CreateFeature;
 use App\Actions\Catalog\CreateModule;
+use App\Actions\Diagnostics\ImportToolResults;
+use App\Actions\Diagnostics\RejectFindings;
+use App\Actions\Diagnostics\RetainFindingsInNewIssue;
+use App\Actions\Diagnostics\SaveDiagnosticCampaign;
+use App\Actions\Diagnostics\SaveTestRun;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Enums\ComponentType;
+use App\Enums\Confidence;
 use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IntegrationProtocol;
 use App\Enums\IssueSeverity;
+use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Enums\RepositoryRole;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
+use App\Enums\ToolResultFormat;
 use App\Enums\VerificationStatus;
 use App\Models\BusinessRule;
 use App\Models\Component;
@@ -117,6 +125,55 @@ class DemoSeeder extends Seeder
         Implementation::query()->where('version_id', $baseline->id)->update(['status' => ImplementationStatus::Operational->value]);
 
         $this->seedQualification($versionA, $versionB);
+        $this->seedDiagnostic($versionA, $apiA);
+    }
+
+    /**
+     * L4: an audit of the API of version A, with results imported from two tools and partly triaged.
+     */
+    private function seedDiagnostic(Version $version, Repository $api): void
+    {
+        $campaign = app(SaveDiagnosticCampaign::class)->handle([
+            'repository_id' => $api->id, 'commit_sha' => '3f9c2e17b4a8d6c05e1f7a92b3c4d5e6f7a8b9c0', 'title' => 'Audit initial avant refactoring',
+            'analyzed_on' => now()->subDays(3)->toDateString(), 'objective' => 'Établir l’état de sécurité et de qualité du code de l’API avant la convergence vers le socle.',
+            'limitations' => "Dossier `legacy/` exclu de l'analyse. Aucun accès à la base de production : les requêtes dynamiques n'ont pas été vérifiées à l'exécution.",
+        ]);
+
+        $result = fn (string $rule, string $level, string $message, string $path, int $line): array => [
+            'ruleId' => $rule, 'level' => $level, 'message' => ['text' => $message],
+            'locations' => [['physicalLocation' => ['artifactLocation' => ['uri' => $path], 'region' => ['startLine' => $line, 'endLine' => $line + 1]]]],
+        ];
+        $import = app(ImportToolResults::class);
+        $import->handle($campaign, ToolResultFormat::Sarif, (string) json_encode(['version' => '2.1.0', 'runs' => [[
+            'tool' => ['driver' => ['name' => 'Semgrep', 'semanticVersion' => '1.95.0']],
+            'results' => [
+                $result('php.lang.security.injection.tainted-sql-string', 'error', 'Requête SQL construite par concaténation d’une entrée utilisateur.', 'app/Repositories/LoanRepository.php', 88),
+                $result('php.lang.security.injection.tainted-sql-string', 'error', 'Requête SQL construite par concaténation d’une entrée utilisateur.', 'app/Repositories/ClientRepository.php', 41),
+                $result('php.lang.security.unserialize-use', 'warning', 'Désérialisation de données non fiables.', 'app/Http/Controllers/ImportController.php', 23),
+                $result('php.laravel.security.laravel-blade-raw-output', 'warning', 'Sortie Blade non échappée.', 'resources/views/reports/summary.blade.php', 12),
+            ],
+        ]]]), 'semgrep.sarif', ['tool_name' => null, 'tool_version' => null, 'scanned_on' => now()->subDays(3)->toDateString(), 'path_prefix' => null]);
+        $import->handle($campaign, ToolResultFormat::Phpstan, (string) json_encode(['files' => [
+            'app/Services/PenaltyCalculator.php' => ['messages' => [['message' => 'Method calculate() should return float but returns float|null.', 'line' => 57, 'identifier' => 'return.type']]],
+            'app/Models/Loan.php' => ['messages' => [['message' => 'Access to an undefined property App\\Models\\Loan::$rate_label.', 'line' => 112, 'identifier' => 'property.notFound']]],
+        ]]), 'larastan.json', ['tool_name' => 'Larastan', 'tool_version' => '3.1', 'scanned_on' => now()->subDays(2)->toDateString(), 'path_prefix' => null]);
+
+        $findings = $campaign->findings()->get();
+        app(RejectFindings::class)->handle($campaign, [$findings->firstWhere('rule_id', 'php.laravel.security.laravel-blade-raw-output')->id], 'Le contenu est du HTML produit par l’application et déjà nettoyé.');
+
+        $implementation = $version->implementations()->whereHas('feature', fn ($query) => $query->where('name', 'Pénalités de retard'))->sole();
+        app(RetainFindingsInNewIssue::class)->handle($campaign, $findings->where('rule_id', 'php.lang.security.injection.tainted-sql-string')->pluck('id')->values()->all(), [
+            'title' => 'Requêtes SQL construites par concaténation', 'description' => 'Deux dépôts de données concatènent des entrées utilisateur dans des requêtes SQL.',
+            'impact' => 'Risque d’injection SQL sur les recherches de clients et de crédits.', 'type' => IssueType::Security, 'severity' => IssueSeverity::Blocking,
+            'status' => IssueStatus::Qualified, 'proposed_solution' => 'Utiliser des requêtes préparées (Query Builder).', 'effort_min_days' => '2', 'effort_max_days' => '3',
+            'confidence' => Confidence::High, 'owner_id' => null, 'repository_id' => null, 'component_id' => null, 'gitlab_issue_url' => null,
+        ], [$implementation->id]);
+
+        app(SaveTestRun::class)->handle($campaign, [
+            'tool_name' => 'PHPUnit', 'tool_version' => '9.6', 'executed_on' => now()->subDays(2)->toDateString(), 'tests_total' => 214, 'tests_passed' => 205,
+            'tests_failed' => 6, 'tests_skipped' => 3, 'line_coverage' => null, 'scope' => 'Suites Unit et Feature ; couverture non mesurée (Xdebug absent).',
+            'source_file_name' => null, 'source_sha256' => null,
+        ]);
     }
 
     private function seedQualification(Version $versionA, Version $versionB): void
