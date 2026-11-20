@@ -110,6 +110,7 @@ class Show extends Component
                 ->mapWithKeys(fn (Version $version): array => [$version->id => $version->product->name.' · '.$version->name]),
             'versionItems' => $this->linkVersionId !== '' ? $this->itemsOfVersion((int) $this->linkVersionId, $implementations) : [],
             'snippets' => $this->snippets(),
+            'findings' => $this->issue->diagnosticFindings()->with('campaign', 'toolRun')->orderBy('id')->limit(50)->get(),
             'repositoryOptions' => $this->snippetRepositoryOptions(),
             'types' => $this->enumOptions(IssueType::class),
             'severities' => $this->enumOptions(IssueSeverity::class),

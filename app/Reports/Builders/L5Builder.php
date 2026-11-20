@@ -49,6 +49,7 @@ final class L5Builder implements ReportBuilder
                 'implementations' => fn ($query) => $query->whereIn('version_id', $versions->keys()),
                 'owner', 'repository', 'component',
                 'codeSnippets' => fn ($query) => $query->whereNull('archived_at')->whereNotNull('commit_sha')->with('repository'),
+                'diagnosticFindings' => fn ($query) => $query->whereNotNull('path')->with('campaign.repository')->orderBy('id'),
             ])
             ->orderByRaw("FIELD(severity, 'blocking', 'major', 'minor')")
             ->orderBy('id')
@@ -254,13 +255,20 @@ final class L5Builder implements ReportBuilder
     }
 
     /**
-     * GitLab link of the first anchored snippet (repository URL, commit, file, lines).
+     * GitLab link of the first anchored snippet (repository URL, commit, file, lines), else of the
+     * first tool result retained in the issue (L4 campaign commit).
      */
     private function evidenceUrl(Issue $issue): ?string
     {
         /** @var CodeSnippet|null $snippet */
         $snippet = $issue->codeSnippets->first(fn (CodeSnippet $snippet): bool => $snippet->repository?->web_url !== null && $snippet->path !== null);
         if ($snippet === null) {
+            foreach ($issue->diagnosticFindings as $finding) {
+                if (($url = $finding->campaign->fileUrl($finding->path, $finding->line_start, $finding->line_end)) !== null) {
+                    return $url;
+                }
+            }
+
             return null;
         }
 

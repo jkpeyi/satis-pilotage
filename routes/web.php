@@ -8,6 +8,7 @@ use App\Livewire\Catalog;
 use App\Livewire\ComparisonMatrix;
 use App\Livewire\Customers;
 use App\Livewire\Dashboard;
+use App\Livewire\Diagnostics;
 use App\Livewire\Implementations;
 use App\Livewire\Issues;
 use App\Livewire\Products;
@@ -54,6 +55,8 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/business-rules/{rule}', BusinessRules\Show::class)->name('business-rules.show');
     Route::livewire('/issues', Issues\Index::class)->name('issues.index');
     Route::livewire('/issues/{issue}', Issues\Show::class)->name('issues.show');
+    Route::livewire('/diagnostics', Diagnostics\Index::class)->name('diagnostics.index');
+    Route::livewire('/diagnostics/{campaign}', Diagnostics\Show::class)->name('diagnostics.show');
 
     Route::livewire('/reports', Reports\Index::class)->name('reports.index');
     Route::get('/reports/{generation}/{format}', ReportDownloadController::class)

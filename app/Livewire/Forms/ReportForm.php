@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Forms;
 
+use App\Models\DiagnosticCampaign;
 use App\Reports\ReportScope;
+use Closure;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -14,6 +16,9 @@ class ReportForm extends Form
 
     /** Empty for every customer of the product. */
     public string $customer_id = '';
+
+    /** Required for L4, which reports on one diagnostic campaign. */
+    public string $campaign_id = '';
 
     /**
      * @return list<string>
@@ -38,6 +43,16 @@ class ReportForm extends Form
                 'nullable', 'integer',
                 Rule::exists('versions', 'customer_id')->where('product_id', $this->product_id)->whereNull('archived_at'),
             ],
+            'campaign_id' => [
+                Rule::requiredIf($this->code === 'L4'), 'nullable', 'integer',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $belongs = DiagnosticCampaign::query()->whereKey($value)
+                        ->whereHas('repository.version', fn ($query) => $query->where('product_id', $this->product_id))->exists();
+                    if (! $belongs) {
+                        $fail('Cette campagne ne porte pas sur un dépôt de ce produit.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -48,6 +63,7 @@ class ReportForm extends Form
     {
         return [
             'customer_id.exists' => 'Ce client n’a pas de version active de ce produit.',
+            'campaign_id.required' => 'Choisissez la campagne de diagnostic : L4 porte sur un dépôt à un commit.',
         ];
     }
 
@@ -60,7 +76,10 @@ class ReportForm extends Form
 
         return [
             'code' => $this->code,
-            'scope' => new ReportScope((int) $this->product_id, $this->customer_id !== '' ? (int) $this->customer_id : null),
+            // L4: the campaign determines the repository, hence the customer.
+            'scope' => $this->code === 'L4'
+                ? new ReportScope((int) $this->product_id, null, (int) $this->campaign_id)
+                : new ReportScope((int) $this->product_id, $this->customer_id !== '' ? (int) $this->customer_id : null),
         ];
     }
 }

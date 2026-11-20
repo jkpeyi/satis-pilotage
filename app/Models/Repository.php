@@ -68,6 +68,14 @@ class Repository extends Model
     }
 
     /**
+     * @return HasMany<DiagnosticCampaign, $this>
+     */
+    public function diagnosticCampaigns(): HasMany
+    {
+        return $this->hasMany(DiagnosticCampaign::class);
+    }
+
+    /**
      * @return HasMany<Release, $this>
      */
     public function releases(): HasMany

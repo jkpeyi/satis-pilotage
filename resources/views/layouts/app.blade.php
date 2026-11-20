@@ -24,6 +24,7 @@
             <div class="space-y-1">
                 <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Qualification</p>
                 <x-ui.nav-link :href="route('issues.index')" :active="request()->routeIs('issues.*')">Problèmes</x-ui.nav-link>
+                <x-ui.nav-link :href="route('diagnostics.index')" :active="request()->routeIs('diagnostics.*')">Diagnostics</x-ui.nav-link>
                 <x-ui.nav-link :href="route('business-rules.index')" :active="request()->routeIs('business-rules.*')">Règles métier</x-ui.nav-link>
                 <x-ui.nav-link :href="route('workflows.index')" :active="request()->routeIs('workflows.*')">Workflows</x-ui.nav-link>
             </div>

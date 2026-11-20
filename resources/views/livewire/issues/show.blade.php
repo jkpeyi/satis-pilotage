@@ -86,6 +86,21 @@
                 </form>
             </x-ui.card>
 
+            @if ($findings->isNotEmpty())
+                <x-ui.card title="Résultats d’outils retenus">
+                    <ul class="space-y-2 text-xs">
+                        @foreach ($findings as $finding)
+                            <li wire:key="finding-{{ $finding->id }}">
+                                <a href="{{ route('diagnostics.show', $finding->campaign) }}" wire:navigate class="font-mono text-brand-700 hover:underline">{{ $finding->displayCode() }}</a>
+                                <span class="text-slate-500">{{ $finding->toolRun->tool_name }} · {{ $finding->campaign->displayCode() }} @ {{ $finding->campaign->shortCommit() }}</span>
+                                <div class="text-slate-700">{{ \Illuminate\Support\Str::limit($finding->message, 160) }}</div>
+                                @if ($finding->location()) <div class="break-all font-mono text-slate-500">{{ $finding->location() }}</div> @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-ui.card>
+            @endif
+
             <x-ui.card>
                 <x-ui.audit :record="$issue" />
             </x-ui.card>
