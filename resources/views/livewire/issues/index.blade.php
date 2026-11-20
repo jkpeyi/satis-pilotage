@@ -1,7 +1,7 @@
 <div>
     <x-ui.page-header title="Problèmes" description="Anomalies, dette et risques relevés dans les versions.">
         <x-slot:actions>
-            <span class="text-sm text-slate-600">Effort cumulé de la sélection : <strong class="tabular-nums">{{ rtrim(rtrim(number_format((float) $totalEffort, 1, ',', ' '), '0'), ',') }} j/h</strong></span>
+            <span class="text-sm text-slate-600">Effort cumulé de la sélection : <strong class="tabular-nums">{{ $totalEffort }}</strong></span>
         </x-slot:actions>
     </x-ui.page-header>
 
@@ -53,7 +53,7 @@
                     <td class="text-xs text-slate-600" title="{{ $issue->implementations->pluck('version.name')->unique()->implode(', ') }}">
                         {{ $issue->implementations->pluck('version_id')->unique()->count() }}
                     </td>
-                    <td class="text-right tabular-nums">{{ $issue->effort_days !== null ? rtrim(rtrim((string) $issue->effort_days, '0'), '.') : '—' }}</td>
+                    <td class="whitespace-nowrap text-right tabular-nums">{{ $issue->effortLabel() ?? '—' }}</td>
                 </tr>
             @endforeach
         </x-ui.table>

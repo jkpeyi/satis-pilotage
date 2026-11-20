@@ -8,8 +8,10 @@ use App\Models\Customer;
 use App\Models\Issue;
 use App\Models\Product;
 use App\Models\Version;
+use App\Support\Effort;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -21,7 +23,7 @@ class Dashboard extends Component
      */
     private function openIssues(): Builder
     {
-        return Issue::query()->whereNull('archived_at')->whereNotIn('status', [IssueStatus::Fixed->value, IssueStatus::Dropped->value]);
+        return Issue::query()->whereNull('archived_at')->whereIn('status', IssueStatus::openValues());
     }
 
     public function render(): View
@@ -36,7 +38,10 @@ class Dashboard extends Component
                     ->count(),
                 'Problèmes non résolus' => $this->openIssues()->count(),
             ],
-            'openEffort' => (float) $this->openIssues()->sum('effort_days'),
+            'openEffort' => Effort::format(
+                $this->openIssues()->sum('effort_min_days'),
+                $this->openIssues()->sum(DB::raw('COALESCE(effort_max_days, effort_min_days)')),
+            ) ?? '0 j/h',
         ]);
     }
 }

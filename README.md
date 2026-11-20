@@ -55,7 +55,7 @@ Chaque fusion transfère à l'élément conservé les rattachements, règles mé
 
 L'écran « Rapports » génère les livrables du plan DTI (SPEC-001) à partir des données de l'application : un document Word rempli depuis le modèle de `resources/report-templates`, et une annexe XLSX avec les tableaux complets. Chaque export est figé (instantané des données, empreintes SHA-256) et conservé dans `storage/app/private/reports`. Les données absentes de l'application apparaissent « À confirmer ».
 
-Livrables exportables à ce jour : L1, L2 et L3. Les autres modèles sont en place et seront branchés au fil des lots. L'annexe XLSX est écrite en flux : un rapport de plusieurs dizaines de milliers de lignes reste sous 150 Mo de mémoire.
+Livrables exportables à ce jour : L1, L2, L3 et L5. Les autres modèles sont en place et seront branchés au fil des lots. L'annexe XLSX est écrite en flux : un rapport de plusieurs dizaines de milliers de lignes reste sous 150 Mo de mémoire.
 
 ## Technologies
 

@@ -3,6 +3,7 @@
 use App\Reports\Builders\L1Builder;
 use App\Reports\Builders\L2Builder;
 use App\Reports\Builders\L3Builder;
+use App\Reports\Builders\L5Builder;
 
 /*
  * Deliverables of the DTI plan (SPEC-001). A deliverable without builder is not exportable yet.
@@ -21,7 +22,7 @@ return [
         'L2' => ['title' => 'Référentiel fonctionnel consolidé', 'template' => 'L2.docx', 'template_version' => '1.0', 'builder' => L2Builder::class],
         'L3' => ['title' => 'Cartographie technique', 'template' => 'L3.docx', 'template_version' => '1.0', 'builder' => L3Builder::class],
         'L4' => ['title' => 'Rapport de diagnostic par dépôt', 'template' => 'L4.docx', 'template_version' => '1.0', 'builder' => null],
-        'L5' => ['title' => 'Registre consolidé de dette technique', 'template' => 'L5.docx', 'template_version' => '1.0', 'builder' => null],
+        'L5' => ['title' => 'Registre consolidé de dette technique', 'template' => 'L5.docx', 'template_version' => '1.0', 'builder' => L5Builder::class],
         'L6' => ['title' => 'Tableau de bord DTI', 'template' => 'L6.docx', 'template_version' => '1.0', 'builder' => null],
         'L7' => ['title' => 'Stratégie de refactoring', 'template' => 'L7.docx', 'template_version' => '1.0', 'builder' => null],
         'L8' => ['title' => 'Feuille de route de remédiation', 'template' => 'L8.docx', 'template_version' => '1.0', 'builder' => null],

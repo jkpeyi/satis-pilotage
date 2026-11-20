@@ -50,9 +50,10 @@ function issueData(array $overrides = []): array
         'description' => 'Les centimes sont tronqués.',
         'type' => IssueType::Bug,
         'severity' => IssueSeverity::Major,
-        'status' => IssueStatus::Open,
+        'status' => IssueStatus::Identified,
         'proposed_solution' => null,
-        'effort_days' => '1.5',
+        'effort_min_days' => '1.5', 'effort_max_days' => '1.5', 'impact' => null, 'confidence' => null,
+        'owner_id' => null, 'repository_id' => null, 'component_id' => null, 'gitlab_issue_url' => null,
         ...$overrides,
     ];
 }
