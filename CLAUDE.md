@@ -63,6 +63,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Campagne de diagnostic | `DiagnosticCampaign` (displayed `DIA-0001`): a repository analyzed at one `commit_sha`, with its limitations (L4) |
 | Exécution d'outil, résultat | `ToolRun` (one imported file: SARIF, PHPStan JSON, ESLint JSON; `file_sha256` unique per campaign), `DiagnosticFinding` (`RES-0001`, deduplicated by `fingerprint`, `FindingLevel` from the tool, `FindingStatus` to_verify / retained / false_positive) |
 | Exécution de tests | `TestRun` (counts and line coverage, typed or read from JUnit / Clover / Cobertura by `TestReport`; empty when not measured) |
+| Suivi de l'audit | `AuditPeriod`: a product's audit effort over a period (planned and actual hours, support interruptions); periods of a product do not overlap (L6) |
 | Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |
 | Cartographie des écarts | `ComparisonMatrix` |
 | Explorateur de code | `CodeExplorer` |

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\ReportDownloadController;
+use App\Livewire\Audit;
 use App\Livewire\Auth\Login;
 use App\Livewire\BusinessRules;
 use App\Livewire\Catalog;
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/diagnostics/{campaign}', Diagnostics\Show::class)->name('diagnostics.show');
 
     Route::livewire('/reports', Reports\Index::class)->name('reports.index');
+    Route::livewire('/audit', Audit\Index::class)->name('audit.index');
     Route::get('/reports/{generation}/{format}', ReportDownloadController::class)
         ->whereIn('format', ['docx', 'xlsx'])
         ->name('reports.download');
