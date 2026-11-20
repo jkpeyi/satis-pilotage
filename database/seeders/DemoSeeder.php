@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Audit\SaveAuditPeriod;
 use App\Actions\Catalog\CreateFeature;
 use App\Actions\Catalog\CreateModule;
 use App\Actions\Diagnostics\ImportToolResults;
@@ -126,6 +127,23 @@ class DemoSeeder extends Seeder
 
         $this->seedQualification($versionA, $versionB);
         $this->seedDiagnostic($versionA, $apiA);
+        $this->seedAuditPeriods($macro);
+    }
+
+    /**
+     * L6: three weeks of audit follow-up, the current one without actual hours yet.
+     */
+    private function seedAuditPeriods(Product $product): void
+    {
+        $monday = now()->startOfWeek();
+        foreach ([[3, '30', '26', '4', 2], [2, '30', '21', '9', 5], [1, '30', '28', '2', 1], [0, '30', null, null, null]] as [$weeksAgo, $planned, $actual, $support, $interruptions]) {
+            app(SaveAuditPeriod::class)->handle([
+                'product_id' => $product->id, 'starts_on' => $monday->copy()->subWeeks($weeksAgo)->toDateString(),
+                'ends_on' => $monday->copy()->subWeeks($weeksAgo)->addDays(4)->toDateString(), 'hours_planned' => $planned,
+                'hours_actual' => $actual, 'support_hours' => $support, 'support_interruptions' => $interruptions,
+                'notes' => $weeksAgo === 2 ? 'Incident de production sur la clôture mensuelle.' : null,
+            ]);
+        }
     }
 
     /**

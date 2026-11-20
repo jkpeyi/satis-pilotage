@@ -45,7 +45,7 @@ it('rejects a customer without version of the product and a deliverable not expo
     $this->actingAs($this->user);
 
     Livewire::test(Index::class)
-        ->set('form.code', 'L6')
+        ->set('form.code', 'L7')
         ->set('form.product_id', (string) $this->version->product_id)
         ->set('form.customer_id', (string) Customer::factory()->create()->id)
         ->call('generate')
