@@ -149,7 +149,10 @@ class DemoSeeder extends Seeder
             'type' => IssueType::Bug,
             'severity' => IssueSeverity::Major,
             'proposed_solution' => 'Utiliser un arrondi bancaire et reporter le reliquat sur la dernière échéance.',
-            'effort_days' => 1.5,
+            'impact' => 'La dernière échéance de chaque crédit est fausse de quelques centimes.',
+            'effort_min_days' => 1,
+            'effort_max_days' => 2,
+            'confidence' => 'medium',
         ]);
         $issue->implementations()->attach([
             $implementationOf($versionA, 'Échéancier')->id,
@@ -161,7 +164,10 @@ class DemoSeeder extends Seeder
             'description' => 'La route d\'export n\'applique pas le middleware d\'autorisation.',
             'type' => IssueType::Security,
             'severity' => IssueSeverity::Blocking,
-            'effort_days' => 0.5,
+            'impact' => 'N’importe quel utilisateur connecté peut exporter tous les clients.',
+            'effort_min_days' => 0.5,
+            'effort_max_days' => 0.5,
+            'confidence' => 'high',
         ]);
         $security->implementations()->attach($implementationOf($versionA, 'Recherche')->id);
 

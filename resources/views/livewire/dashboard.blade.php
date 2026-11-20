@@ -11,7 +11,7 @@
     </dl>
 
     <p class="mt-6 text-sm text-slate-600">
-        Effort estimé des problèmes non résolus : <strong class="tabular-nums">{{ rtrim(rtrim(number_format($openEffort, 1, ',', ' '), '0'), ',') }} j/h</strong>.
+        Effort estimé des problèmes non résolus : <strong class="tabular-nums">{{ $openEffort }}</strong>.
         <a href="{{ route('issues.index') }}" wire:navigate class="text-brand-700 hover:underline">Voir les problèmes</a>
     </p>
     <p class="mt-2 text-sm text-slate-500">Les tableaux de bord détaillés arrivent avec les rapports (S5).</p>

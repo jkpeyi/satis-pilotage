@@ -16,13 +16,21 @@
         <x-ui.severity-badge :severity="$issue->severity" />
         <x-ui.badge>{{ $issue->type->label() }}</x-ui.badge>
         <x-ui.badge color="blue">{{ $issue->status->label() }}</x-ui.badge>
-        @if ($issue->effort_days !== null) <span class="text-slate-600">Effort estimé : <strong class="tabular-nums">{{ rtrim(rtrim((string) $issue->effort_days, '0'), '.') }} j/h</strong></span> @endif
+        @if ($issue->effortLabel()) <span class="text-slate-600">Effort estimé : <strong class="tabular-nums">{{ $issue->effortLabel() }}</strong>@if ($issue->confidence) (confiance {{ mb_strtolower($issue->confidence->label()) }})@endif</span> @endif
+        @if ($issue->owner) <span class="text-slate-600">· Responsable : {{ $issue->owner->name }}</span> @endif
+        @if ($issue->repository) <span class="font-mono text-xs text-slate-600">· {{ $issue->repository->path }}</span> @endif
+        @if ($issue->component) <span class="text-slate-600">· {{ $issue->component->displayCode() }} {{ $issue->component->name }}</span> @endif
+        @if ($issue->gitlab_issue_url) <a href="{{ $issue->gitlab_issue_url }}" target="_blank" rel="noopener" class="text-brand-700 hover:underline">Ticket GitLab</a> @endif
     </div>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="min-w-0 space-y-6">
             <x-ui.card title="Constat">
                 <x-ui.markdown :text="$issue->description" />
+                @if ($issue->impact)
+                    <h3 class="mb-2 mt-6 text-sm font-semibold text-slate-900">Impact</h3>
+                    <x-ui.markdown :text="$issue->impact" />
+                @endif
                 @if ($issue->proposed_solution)
                     <h3 class="mb-2 mt-6 text-sm font-semibold text-slate-900">Solution proposée</h3>
                     <x-ui.markdown :text="$issue->proposed_solution" />

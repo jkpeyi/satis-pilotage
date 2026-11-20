@@ -10,6 +10,7 @@ use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Enums\SnippetKind;
 use App\Livewire\Concerns\EnumOptions;
+use App\Livewire\Concerns\IssueFieldOptions;
 use App\Livewire\Concerns\ManagesCodeSnippets;
 use App\Livewire\Forms\IssueForm;
 use App\Models\Implementation;
@@ -48,7 +49,14 @@ class Show extends Component
 
     public function save(SaveIssue $saveIssue): void
     {
-        $saveIssue->handle($this->form->data(), $this->issue);
+        try {
+            $saveIssue->handle($this->form->data(), $this->issue);
+        } catch (DomainException $exception) {
+            $this->addError('form.repository_id', $exception->getMessage());
+
+            return;
+        }
+
         $this->dispatch('notify', message: 'Problème enregistré.');
     }
 
@@ -91,7 +99,7 @@ class Show extends Component
 
     public function render(): View
     {
-        $this->issue->load(['creator', 'editor']);
+        $this->issue->load(['creator', 'editor', 'owner', 'repository', 'component']);
         $implementations = $this->issue->implementations()->with(['version.product', 'module', 'feature'])->get();
 
         return view('livewire.issues.show', [
@@ -106,6 +114,7 @@ class Show extends Component
             'types' => $this->enumOptions(IssueType::class),
             'severities' => $this->enumOptions(IssueSeverity::class),
             'statuses' => $this->enumOptions(IssueStatus::class),
+            ...IssueFieldOptions::for($implementations->pluck('version_id')->unique()->all()),
             'snippetKinds' => $this->enumOptions(SnippetKind::class),
         ])->title($this->issue->displayCode().' · '.$this->issue->title);
     }

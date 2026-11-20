@@ -14,6 +14,7 @@ use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\VerificationStatus;
 use App\Livewire\Concerns\EnumOptions;
+use App\Livewire\Concerns\IssueFieldOptions;
 use App\Livewire\Forms\AssessmentForm;
 use App\Livewire\Forms\BusinessRuleForm;
 use App\Livewire\Forms\IssueForm;
@@ -21,6 +22,7 @@ use App\Models\Implementation;
 use App\Models\Issue;
 use App\Models\User;
 use App\Queries\CatalogTree;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -82,7 +84,14 @@ class Show extends Component
 
     public function saveIssue(SaveIssue $saveIssue): void
     {
-        $issue = $saveIssue->handle($this->issueForm->data(), null, [$this->implementation->id]);
+        try {
+            $issue = $saveIssue->handle($this->issueForm->data(), null, [$this->implementation->id]);
+        } catch (DomainException $exception) {
+            $this->addError('issueForm.repository_id', $exception->getMessage());
+
+            return;
+        }
+
         $this->showIssueForm = false;
         $this->dispatch('notify', message: "Problème {$issue->displayCode()} créé.");
     }
@@ -139,6 +148,7 @@ class Show extends Component
             'issueTypes' => $this->enumOptions(IssueType::class),
             'severities' => $this->enumOptions(IssueSeverity::class),
             'issueStatuses' => $this->enumOptions(IssueStatus::class),
+            ...IssueFieldOptions::for([$this->implementation->version_id]),
         ])->title($item->name.' · '.$this->implementation->version->name);
     }
 
@@ -154,7 +164,7 @@ class Show extends Component
 
         return Issue::query()
             ->whereNull('archived_at')
-            ->whereNotIn('status', [IssueStatus::Fixed->value, IssueStatus::Dropped->value])
+            ->whereIn('status', IssueStatus::openValues())
             ->whereHas('implementations', fn ($query) => $query->where($column, $itemId)->where('implementations.id', '!=', $this->implementation->id))
             ->whereDoesntHave('implementations', fn ($query) => $query->where('implementations.id', $this->implementation->id))
             ->orderBy('id')

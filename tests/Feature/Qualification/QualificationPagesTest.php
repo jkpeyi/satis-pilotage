@@ -32,7 +32,7 @@ function createIssueFor($implementation, array $overrides = []): Issue
 {
     $issue = Issue::query()->create([
         'title' => 'Arrondi', 'description' => 'Centimes tronqués.', 'type' => IssueType::Bug,
-        'severity' => IssueSeverity::Major, 'effort_days' => 2, ...$overrides,
+        'severity' => IssueSeverity::Major, 'effort_min_days' => 2, 'effort_max_days' => 2, ...$overrides,
     ]);
     $issue->implementations()->attach($implementation);
 
@@ -102,13 +102,14 @@ it('EF-208: creates an issue linked to the implementation', function () {
         ->set('issueForm.title', 'Arrondi des échéances')
         ->set('issueForm.description', 'Les centimes sont tronqués.')
         ->set('issueForm.severity', 'blocking')
-        ->set('issueForm.effort_days', '1,5')
+        ->set('issueForm.effort_min_days', '1,5')
         ->call('saveIssue')
         ->assertHasNoErrors();
 
     $issue = $this->implementation->issues()->sole();
     expect($issue->severity)->toBe(IssueSeverity::Blocking)
-        ->and((string) $issue->effort_days)->toBe('1.5');
+        ->and((string) $issue->effort_min_days)->toBe('1.5')
+        ->and((string) $issue->effort_max_days)->toBe('1.5');
 });
 
 it('links an existing issue by its code and suggests issues known on the same item elsewhere', function () {
@@ -190,13 +191,13 @@ it('RG-09: links the issue to the same item elsewhere and refuses to remove the 
 });
 
 it('EF-209: filters issues and sums their effort', function () {
-    createIssueFor($this->implementation, ['title' => 'Bloquant A', 'severity' => IssueSeverity::Blocking, 'effort_days' => 3]);
-    createIssueFor($this->implementation, ['title' => 'Mineur B', 'severity' => IssueSeverity::Minor, 'effort_days' => 0.5]);
-    createIssueFor($this->implementation, ['title' => 'Corrigé C', 'status' => 'fixed', 'effort_days' => 10]);
+    createIssueFor($this->implementation, ['title' => 'Bloquant A', 'severity' => IssueSeverity::Blocking, 'effort_min_days' => 3, 'effort_max_days' => 5]);
+    createIssueFor($this->implementation, ['title' => 'Mineur B', 'severity' => IssueSeverity::Minor, 'effort_min_days' => 0.5, 'effort_max_days' => 0.5]);
+    createIssueFor($this->implementation, ['title' => 'Corrigé C', 'status' => 'treated', 'effort_min_days' => 10, 'effort_max_days' => 10]);
 
     Livewire::test(Issues\Index::class)
         ->assertSee('Bloquant A')->assertSee('Mineur B')->assertDontSee('Corrigé C')
-        ->assertViewHas('totalEffort', fn ($total) => (float) $total === 3.5)
+        ->assertViewHas('totalEffort', '3,5 à 5,5 j/h')
         ->set('severity', 'blocking')
         ->assertSee('Bloquant A')->assertDontSee('Mineur B')
         ->set('severity', '')->set('status', '')

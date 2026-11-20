@@ -59,7 +59,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Composant, intégration | `Component` (displayed `CMP-0001`, a technical part of a version), `Integration` (`INT-0001`, from a component to another component or to an `external_system`: exactly one target, CHECK) |
 | Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s; `kind` action, decision or end, RG-17) |
 | Sortie (si / sinon) | `WorkflowTransition` (from a step to a step of the same workflow, with its condition `label`); `WorkflowGraph` builds the graph, checks and diagram layout |
-| Problème | `Issue` (displayed `PB-0042`) |
+| Problème | `Issue` (displayed `PB-0042`): README finding statuses plus « abandonné » (`IssueStatus::isOpen()`), effort range `effort_min_days`/`effort_max_days` with `Confidence`, impact, owner, repository, component, GitLab ticket (L5) |
 | Extrait de code, ancrage | `CodeSnippet` (`repository_id`, `commit_sha`, `path`, `line_start`, `line_end`) |
 | Cartographie des écarts | `ComparisonMatrix` |
 | Explorateur de code | `CodeExplorer` |

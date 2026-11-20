@@ -9,6 +9,7 @@ use App\Livewire\Concerns\EnumOptions;
 use App\Models\Issue;
 use App\Models\Product;
 use App\Models\Version;
+use App\Support\Effort;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Title;
@@ -59,11 +60,12 @@ class Index extends Component
             ->when($this->version !== '', fn (Builder $query) => $query->whereHas('implementations', fn (Builder $implementation) => $implementation->where('version_id', $this->version)))
             ->when($this->type !== '', fn (Builder $query) => $query->where('type', $this->type))
             ->when($this->severity !== '', fn (Builder $query) => $query->where('severity', $this->severity))
-            ->when($this->status === 'active', fn (Builder $query) => $query->whereNotIn('status', [IssueStatus::Fixed->value, IssueStatus::Dropped->value]))
+            ->when($this->status === 'active', fn (Builder $query) => $query->whereIn('status', IssueStatus::openValues()))
             ->when(! in_array($this->status, ['', 'active'], true), fn (Builder $query) => $query->where('status', $this->status))
             ->when($this->search !== '', fn (Builder $query) => $this->applySearch($query));
 
-        $totalEffort = (clone $query)->sum('effort_days');
+        $totals = (clone $query)->toBase()->selectRaw('SUM(effort_min_days) as low, SUM(COALESCE(effort_max_days, effort_min_days)) as high')->first();
+        $totalEffort = Effort::format($totals->low ?? null, $totals->high ?? null) ?? '0 j/h';
 
         $issues = $query
             ->withCount('implementations')
