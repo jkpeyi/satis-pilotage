@@ -86,6 +86,27 @@
                 </form>
             </x-ui.card>
 
+            <x-ui.card title="Actions de remédiation">
+                @if ($remediationActions->isEmpty())
+                    <p class="text-sm text-slate-500">Aucune action planifiée pour ce problème.</p>
+                @else
+                    <ul class="space-y-2 text-sm">
+                        @foreach ($remediationActions as $remediationAction)
+                            <li wire:key="remediation-{{ $remediationAction->id }}" class="flex items-start justify-between gap-2">
+                                <span>
+                                    <span class="font-mono text-xs text-slate-500">{{ $remediationAction->displayCode() }}</span> {{ $remediationAction->title }}
+                                    <span class="block text-xs text-slate-500">{{ $remediationAction->owner->name ?? 'Responsable à désigner' }}{{ $remediationAction->due_on ? ' · échéance '.$remediationAction->due_on->format('d/m/Y') : '' }}</span>
+                                </span>
+                                <x-ui.badge :color="$remediationAction->status->color()">{{ $remediationAction->status->label() }}</x-ui.badge>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                @if ($planProductId)
+                    <a href="{{ route('actions.index', ['product' => $planProductId, 'issue' => $issue->id]) }}" wire:navigate class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Planifier une action</a>
+                @endif
+            </x-ui.card>
+
             @if ($findings->isNotEmpty())
                 <x-ui.card title="Résultats d’outils retenus">
                     <ul class="space-y-2 text-xs">

@@ -68,7 +68,7 @@ beforeEach(function () {
     $this->sections = fn (ReportGeneration $generation): array => json_decode($generation->snapshot, true)['sections'];
 });
 
-it('shows each indicator with its denominator and leaves actions to confirm', function () {
+it('shows each indicator with its denominator', function () {
     $generation = ($this->generate)();
     $rows = collect(($this->sections)($generation)['dashboard.executive_summary']['rows'])->keyBy('indicator');
 
@@ -79,11 +79,11 @@ it('shows each indicator with its denominator and leaves actions to confirm', fu
         ->and($rows['Fonctionnalités évaluées']['value'])->toBe('2 / 4 (50 %)')
         ->and($rows['Constats critiques à traiter'])->toMatchArray(['value' => '1', 'basis' => 'problèmes bloquants, sur 1 problème à traiter et 3 recensés'])
         ->and($rows['Résultats d’outils à vérifier']['value'])->toBe('1')
-        ->and($rows['Actions ouvertes']['value'])->toBeNull()
-        ->and($rows['Actions fermées']['value'])->toBeNull()
+        ->and($rows['Actions ouvertes']['value'])->toBe('0')
+        ->and($rows['Actions fermées']['value'])->toBe('0')
         ->and($rows['Heures d’audit prévues'])->toMatchArray(['value' => '60 h', 'basis' => '2 périodes commencées à cette date'])
         ->and($rows['Heures d’audit réalisées'])->toMatchArray(['value' => '24 h', 'basis' => 'pour 30 h prévues sur les mêmes périodes ; 1 période sans réalisé'])
-        ->and($generation->missing_count)->toBe(2);
+        ->and($generation->missing_count)->toBe(0);
 });
 
 it('summarizes coverage, risks, capacity and the points to arbitrate', function () {

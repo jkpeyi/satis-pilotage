@@ -13,6 +13,7 @@ use App\Livewire\Diagnostics;
 use App\Livewire\Implementations;
 use App\Livewire\Issues;
 use App\Livewire\Products;
+use App\Livewire\Remediation;
 use App\Livewire\Reports;
 use App\Livewire\Technologies;
 use App\Livewire\Versions;
@@ -57,6 +58,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/issues', Issues\Index::class)->name('issues.index');
     Route::livewire('/issues/{issue}', Issues\Show::class)->name('issues.show');
     Route::livewire('/diagnostics', Diagnostics\Index::class)->name('diagnostics.index');
+    Route::livewire('/actions', Remediation\Index::class)->name('actions.index');
     Route::livewire('/diagnostics/{campaign}', Diagnostics\Show::class)->name('diagnostics.show');
 
     Route::livewire('/reports', Reports\Index::class)->name('reports.index');
