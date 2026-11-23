@@ -242,13 +242,13 @@
 
     <x-ui.modal wire:model="showRepositoryForm" :title="$repositoryForm->repository ? 'Modifier le dépôt' : 'Ajouter un dépôt'">
         <form wire:submit="saveRepository" class="space-y-4">
-            <x-ui.input label="Chemin du dépôt GitLab" wire:model="repositoryForm.path" required class="font-mono" hint="Ex. satis/macro-banque-x-api" />
+            <x-ui.input label="URL GitLab" type="url" wire:model="repositoryForm.web_url" required class="font-mono"
+                placeholder="https://gitlab.satisworld.com/satis/macro-banque-x-api" hint="Adresse complète du projet. Son chemin (ex. satis/macro-banque-x-api) sert de nom au dépôt." />
             <div class="grid gap-4 sm:grid-cols-2">
                 <x-ui.select label="Rôle" wire:model="repositoryForm.role" :options="$roles" required />
                 <x-ui.input label="Branche de production" wire:model="repositoryForm.production_branch" required class="font-mono" />
             </div>
             <x-ui.input label="Branches actives" wire:model="repositoryForm.active_branches" hint="Séparées par des virgules." class="font-mono" />
-            <x-ui.input label="URL GitLab" type="url" wire:model="repositoryForm.web_url" />
 
             <fieldset class="space-y-2">
                 <legend class="text-sm font-medium text-slate-700">Stack technique</legend>

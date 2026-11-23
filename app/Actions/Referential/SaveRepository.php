@@ -4,22 +4,29 @@ namespace App\Actions\Referential;
 
 use App\Enums\RepositoryRole;
 use App\Models\Repository;
+use DomainException;
 
 /**
- * Phase 1: repositories and their stack are entered manually.
+ * Phase 1: repositories and their stack are entered manually. A repository is entered by its full
+ * GitLab URL; its path (its name in the application) is derived from it.
  */
 final class SaveRepository
 {
     public function __construct(private readonly RegisterTechnologies $registerTechnologies) {}
 
     /**
-     * @param  array{version_id: int, path: string, web_url: ?string, role: RepositoryRole, production_branch: string, active_branches: list<string>, stack: array<string, string>}  $data
+     * @param  array{version_id: int, web_url: string, role: RepositoryRole, production_branch: string, active_branches: list<string>, stack: array<string, string>}  $data
      */
     public function handle(array $data, ?Repository $repository = null): Repository
     {
         $repository ??= new Repository;
 
-        $data['path'] = trim($data['path']);
+        $data['web_url'] = rtrim(trim($data['web_url']), '/');
+        $path = Repository::pathFromUrl($data['web_url']);
+        if ($path === null) {
+            throw new DomainException('L’URL GitLab doit contenir le chemin du projet.');
+        }
+        $data['path'] = $path;
         $data['stack'] = $this->normalizeStack($data['stack']);
         $data['active_branches'] = array_values(array_unique(array_filter(array_map('trim', $data['active_branches']))));
 

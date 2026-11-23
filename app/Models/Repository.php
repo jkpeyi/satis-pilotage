@@ -44,6 +44,20 @@ class Repository extends Model
     }
 
     /**
+     * GitLab path of a project from its full URL, e.g. "satis/macro-api" from
+     * "https://gitlab.satisworld.com/satis/macro-api" (also from a ".git" or "/-/tree/main" URL).
+     * The path is the repository's name everywhere in the application.
+     */
+    public static function pathFromUrl(string $url): ?string
+    {
+        $path = (string) parse_url(trim($url), PHP_URL_PATH);
+        $path = (string) preg_replace('#/-/.*$#', '', $path);
+        $path = (string) preg_replace('#\.git$#', '', trim($path, '/'));
+
+        return $path !== '' ? $path : null;
+    }
+
+    /**
      * @return BelongsTo<Version, $this>
      */
     public function version(): BelongsTo

@@ -68,11 +68,11 @@ class DemoSeeder extends Seeder
         Version::query()->create(['product_id' => $macro->id, 'name' => 'Satis Macro SaaS', 'status' => 'future']);
 
         $apiA = Repository::query()->create([
-            'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-api', 'role' => RepositoryRole::Backend,
+            'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-api', 'web_url' => 'https://gitlab.example.com/satis/macro-demo-a-api', 'role' => RepositoryRole::Backend,
             'production_branch' => 'main', 'active_branches' => ['main', 'develop'], 'stack' => ['php' => '8.1.27', 'laravel' => '9.52.16'],
         ]);
         $frontA = Repository::query()->create([
-            'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-front', 'role' => RepositoryRole::Frontend,
+            'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-front', 'web_url' => 'https://gitlab.example.com/satis/macro-demo-a-front', 'role' => RepositoryRole::Frontend,
             'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['react' => '17.0.2', 'node' => '16.20.0'],
         ]);
 

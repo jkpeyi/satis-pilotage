@@ -19,7 +19,8 @@ class RepositoryFactory extends Factory
     {
         return [
             'version_id' => Version::factory(),
-            'path' => 'satis/'.fake()->unique()->slug(2),
+            'path' => $path = 'satis/'.fake()->unique()->slug(2),
+            'web_url' => 'https://gitlab.example.test/'.$path,
             'role' => RepositoryRole::Backend,
             'production_branch' => 'main',
             'active_branches' => ['main'],

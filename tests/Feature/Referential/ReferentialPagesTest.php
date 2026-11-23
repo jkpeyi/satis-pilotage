@@ -171,7 +171,7 @@ it('adds a repository with its stack from the version page', function () {
     Livewire::test(Versions\Show::class, ['version' => $version])
         ->call('createRepository')
         ->assertSet('showRepositoryForm', true)
-        ->set('repositoryForm.path', 'satis/macro-x-api')
+        ->set('repositoryForm.web_url', 'https://gitlab.example.test/satis/macro-x-api')
         ->set('repositoryForm.stack.0.version', '8.1.27')
         ->call('addStackRow')
         ->set('repositoryForm.stack.3.component', 'node')
@@ -182,7 +182,21 @@ it('adds a repository with its stack from the version page', function () {
         ->assertDispatched('notify')
         ->assertSee('satis/macro-x-api');
 
-    expect($version->repositories()->sole()->stack)->toEqual(['php' => '8.1.27', 'node' => '16.20.0']);
+    expect($version->repositories()->sole())
+        ->stack->toEqual(['php' => '8.1.27', 'node' => '16.20.0'])
+        ->path->toBe('satis/macro-x-api');
+
+    Livewire::test(Versions\Show::class, ['version' => $version])
+        ->call('createRepository')
+        ->set('repositoryForm.web_url', 'https://gitlab.example.test/satis/macro-x-api.git')
+        ->call('saveRepository')
+        ->assertHasErrors(['repositoryForm.web_url'])
+        ->set('repositoryForm.web_url', 'https://gitlab.example.test/')
+        ->call('saveRepository')
+        ->assertHasErrors(['repositoryForm.web_url'])
+        ->set('repositoryForm.web_url', '')
+        ->call('saveRepository')
+        ->assertHasErrors(['repositoryForm.web_url' => 'required']);
 });
 
 it('adds an environment linked to a repository of the version', function () {
