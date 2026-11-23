@@ -126,17 +126,15 @@ it('attaches the existing item from the version scope instead of creating a dupl
     app(AttachCatalogItems::class)->handle([$version->id], [$this->savings->id]);
 
     Livewire::test(Scope::class, ['version' => $version])
-        ->set('showCreate', true)
-        ->set('newKind', 'feature')
-        ->set('newParentId', (string) $this->savings->id)
-        ->set('newName', 'Simulation')
+        ->call('startDraft', $this->savings->id, 'feature')
+        ->set('draftName', 'Simulation')
         ->assertSee('Rattacher')
-        ->call('createItem')
-        ->assertHasErrors(['newName'])
-        ->call('attachExisting', 'feature:'.$this->simulation->id)
+        ->call('saveDraft')
+        ->assertHasErrors(['draftName'])
+        ->call('reuseExisting', 'feature:'.$this->simulation->id, 'attach')
         ->assertDispatched('notify')
-        ->set('newName', 'Simulation')
-        ->assertSee('Déjà rattaché');
+        ->set('draftName', 'Simulation')
+        ->assertSee('Déjà dans le périmètre');
 
     expect($version->implementations()->pluck('feature_id')->filter()->values()->all())->toBe([$this->simulation->id])
         ->and($version->implementations()->whereIn('module_id', [$this->credit->id, $this->granting->id])->count())->toBe(2);
