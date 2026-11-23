@@ -15,11 +15,16 @@ use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Actions\Remediation\SaveRemediationAction;
 use App\Actions\Remediation\SaveWorkPackage;
+use App\Actions\Strategy\SaveRefactoringStrategy;
+use App\Actions\Strategy\SaveStrategyDecision;
+use App\Actions\Strategy\SaveStrategyItem;
 use App\Enums\ActionPriority;
 use App\Enums\ActionStatus;
+use App\Enums\ApprovalStatus;
 use App\Enums\ComponentType;
 use App\Enums\Confidence;
 use App\Enums\CustomerType;
+use App\Enums\DecisionStatus;
 use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IntegrationProtocol;
@@ -27,6 +32,7 @@ use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Enums\RepositoryRole;
+use App\Enums\RiskLevel;
 use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
@@ -45,6 +51,9 @@ use App\Models\Module;
 use App\Models\Product;
 use App\Models\Release;
 use App\Models\Repository;
+use App\Models\StrategyOption;
+use App\Models\StrategyPhase;
+use App\Models\StrategyRisk;
 use App\Models\Technology;
 use App\Models\Version;
 use App\Models\Workflow;
@@ -135,6 +144,45 @@ class DemoSeeder extends Seeder
         $this->seedDiagnostic($versionA, $apiA);
         $this->seedAuditPeriods($macro);
         $this->seedRemediation($macro);
+        $this->seedStrategy($macro);
+    }
+
+    /**
+     * L7: a strategy under review with two scenarios, a migration phase, a risk and a pending decision.
+     */
+    private function seedStrategy(Product $product): void
+    {
+        $sql = Issue::query()->where('title', 'Requêtes SQL construites par concaténation')->first();
+        $strategy = app(SaveRefactoringStrategy::class)->handle([
+            'product_id' => $product->id, 'title' => 'Convergence de Satis Macro vers le socle',
+            'context' => "Chaque client a une version divergente : les corrections sont faites plusieurs fois.\n\nObjectif : un socle commun paramétrable, et des écarts clients réduits à la configuration.",
+            'migration' => 'Migrer client par client, en commençant par la version la plus proche du socle.',
+            'safety' => 'Rejouer la recette métier de chaque client sur le socle avant bascule ; bascule réversible par client.',
+            'saas_notes' => null,
+        ], null, $sql !== null ? [$sql->id] : []);
+        $items = app(SaveStrategyItem::class);
+        $converge = $items->handle($strategy, new StrategyOption, [
+            'name' => 'Converger vers le socle', 'description' => 'Ramener chaque version client sur le socle, écarts en paramétrage.',
+            'benefits' => 'Une seule base de code à corriger et faire évoluer.', 'drawbacks' => 'Migration et recette de chaque client.',
+            'effort_min_days' => '120', 'effort_max_days' => '180', 'risk_level' => RiskLevel::Medium, 'is_recommended' => true,
+        ]);
+        $items->handle($strategy, new StrategyOption, [
+            'name' => 'Maintenir les versions et mutualiser les correctifs', 'benefits' => 'Pas de migration des clients.',
+            'drawbacks' => 'La divergence continue ; chaque correctif reste à reporter.', 'effort_min_days' => '40', 'effort_max_days' => '60', 'risk_level' => RiskLevel::Low,
+        ]);
+        $items->handle($strategy, new StrategyPhase, [
+            'name' => 'Stabiliser le socle', 'description' => 'Corriger les problèmes bloquants du socle et couvrir ses parcours critiques par des tests.',
+            'prerequisites' => 'Problèmes bloquants traités (lot 1).', 'rollback' => 'Sans objet : aucun client n’est migré.',
+        ]);
+        $items->handle($strategy, new StrategyRisk, [
+            'description' => 'Régression fonctionnelle chez un client après migration.', 'probability' => RiskLevel::Medium, 'impact' => RiskLevel::High,
+            'mitigation' => 'Recette métier par client et bascule réversible.',
+        ]);
+        app(SaveStrategyDecision::class)->handle($strategy, [
+            'strategy_option_id' => $converge->id, 'title' => 'Retenir la convergence vers le socle', 'rationale' => null,
+            'status' => DecisionStatus::Proposed, 'decided_on' => null,
+        ]);
+        $strategy->forceFill(['approval_status' => ApprovalStatus::InReview])->save();
     }
 
     /**

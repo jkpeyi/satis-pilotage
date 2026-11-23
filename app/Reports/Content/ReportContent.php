@@ -14,12 +14,28 @@ final class ReportContent
     /** @var array<string, list<array{caption: string, png: string, width_cm: float}>> images shown after a variable's content */
     private array $figures = [];
 
+    /** @var list<string> narrative parts the application does not hold, listed in « Validation et réserves » */
+    private array $pending = [];
+
     public function __construct(
         public readonly string $product,
         public readonly string $client,
         public readonly string $repository = 'Sans objet',
         public readonly string $commit = 'Sans objet',
+        // Approval of the decision document itself (L7); null for the other deliverables.
+        public readonly ?string $approver = null,
+        public readonly ?string $approval = null,
     ) {}
+
+    /**
+     * A part of the document that the application does not hold yet, e.g. an unwritten section.
+     */
+    public function addPending(string $item): self
+    {
+        $this->pending[] = $item;
+
+        return $this;
+    }
 
     public function set(string $variable, TextSection|TableSection $section): self
     {
@@ -85,7 +101,7 @@ final class ReportContent
      */
     public function pendingItems(): array
     {
-        $items = [];
+        $items = $this->pending;
         foreach ($this->tables() as $table) {
             foreach ($table->completeness()['missing'] as $label => $count) {
                 $items[] = sprintf('%s — %s : %d valeur%s à confirmer', $table->title, $label, $count, $count > 1 ? 's' : '');
@@ -118,8 +134,12 @@ final class ReportContent
         $figures = array_map(fn (array $list): array => array_column($list, 'caption'), $this->figures);
 
         return [
-            'control' => ['product' => $this->product, 'client' => $this->client, 'repository' => $this->repository, 'commit' => $this->commit],
+            'control' => [
+                'product' => $this->product, 'client' => $this->client, 'repository' => $this->repository, 'commit' => $this->commit,
+                ...($this->approval !== null ? ['approver' => $this->approver, 'approval' => $this->approval] : []),
+            ],
             'sections' => $sections,
+            ...($this->pending !== [] ? ['pending' => $this->pending] : []),
             ...($figures !== [] ? ['figures' => $figures] : []),
         ];
     }

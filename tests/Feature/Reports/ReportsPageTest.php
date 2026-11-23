@@ -16,13 +16,14 @@ beforeEach(function () {
     $this->version = Version::factory()->create();
 });
 
-it('renders the reports page with the exportable deliverables', function () {
+it('renders the reports page with every deliverable exportable', function () {
     $this->actingAs($this->user)
         ->get(route('reports.index'))
         ->assertOk()
         ->assertSee('Registre des exports')
         ->assertSee('L1 — Cartographie du patrimoine applicatif')
-        ->assertSee('(à venir)');
+        ->assertSee('L8 — Feuille de route de remédiation')
+        ->assertDontSee('(à venir)');
 });
 
 it('generates a report from the page', function () {
@@ -41,11 +42,11 @@ it('generates a report from the page', function () {
         ->and($generation->scope)->toBe(['product_id' => $this->version->product_id, 'customer_id' => $this->version->customer_id]);
 });
 
-it('rejects a customer without version of the product and a deliverable not exportable yet', function () {
+it('rejects a customer without version of the product and an unknown deliverable', function () {
     $this->actingAs($this->user);
 
     Livewire::test(Index::class)
-        ->set('form.code', 'L7')
+        ->set('form.code', 'L9')
         ->set('form.product_id', (string) $this->version->product_id)
         ->set('form.customer_id', (string) Customer::factory()->create()->id)
         ->call('generate')

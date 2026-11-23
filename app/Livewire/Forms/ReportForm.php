@@ -20,6 +20,9 @@ class ReportForm extends Form
     /** Required for L4, which reports on one diagnostic campaign. */
     public string $campaign_id = '';
 
+    /** Required for L7, which reports on one refactoring strategy. */
+    public string $strategy_id = '';
+
     /**
      * @return list<string>
      */
@@ -53,6 +56,10 @@ class ReportForm extends Form
                     }
                 },
             ],
+            'strategy_id' => [
+                Rule::requiredIf($this->code === 'L7'), 'nullable', 'integer',
+                Rule::exists('refactoring_strategies', 'id')->where('product_id', $this->product_id)->whereNull('archived_at'),
+            ],
         ];
     }
 
@@ -64,6 +71,8 @@ class ReportForm extends Form
         return [
             'customer_id.exists' => 'Ce client n’a pas de version active de ce produit.',
             'campaign_id.required' => 'Choisissez la campagne de diagnostic : L4 porte sur un dépôt à un commit.',
+            'strategy_id.required' => 'Choisissez la stratégie de refactoring à exporter.',
+            'strategy_id.exists' => 'Cette stratégie n’appartient pas à ce produit.',
         ];
     }
 
@@ -77,9 +86,11 @@ class ReportForm extends Form
         return [
             'code' => $this->code,
             // L4: the campaign determines the repository, hence the customer.
-            'scope' => $this->code === 'L4'
-                ? new ReportScope((int) $this->product_id, null, (int) $this->campaign_id)
-                : new ReportScope((int) $this->product_id, $this->customer_id !== '' ? (int) $this->customer_id : null),
+            'scope' => match ($this->code) {
+                'L4' => new ReportScope((int) $this->product_id, null, (int) $this->campaign_id),
+                'L7' => new ReportScope((int) $this->product_id, null, null, (int) $this->strategy_id),
+                default => new ReportScope((int) $this->product_id, $this->customer_id !== '' ? (int) $this->customer_id : null),
+            },
         ];
     }
 }

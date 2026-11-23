@@ -88,10 +88,10 @@ final class GenerateReport
                     'scope.commit' => $content->commit,
                     'document.generated_at' => $generation->created_at->format('d/m/Y H:i').' UTC',
                     'document.author' => $author->name,
-                    'document.approver' => 'Sans objet (circuit de validation non activé)',
+                    'document.approver' => $content->approver ?? 'Sans objet (circuit de validation non activé)',
                     'document.status' => $generation->statusLabel(),
                     'document.version' => (string) $versionNumber,
-                    'document.approval' => 'Non soumis à validation (brouillon).',
+                    'document.approval' => $content->approval ?? 'Non soumis à validation (brouillon).',
                 ];
 
                 $docxPath = "{$directory}/{$documentId}.docx";
