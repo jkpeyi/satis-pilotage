@@ -13,6 +13,10 @@ use App\Actions\Diagnostics\SaveTestRun;
 use App\Actions\Implementations\AttachCatalogItems;
 use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
+use App\Actions\Remediation\SaveRemediationAction;
+use App\Actions\Remediation\SaveWorkPackage;
+use App\Enums\ActionPriority;
+use App\Enums\ActionStatus;
 use App\Enums\ComponentType;
 use App\Enums\Confidence;
 use App\Enums\CustomerType;
@@ -28,6 +32,7 @@ use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
 use App\Enums\ToolResultFormat;
 use App\Enums\VerificationStatus;
+use App\Enums\WorkPackageStatus;
 use App\Models\BusinessRule;
 use App\Models\Component;
 use App\Models\Customer;
@@ -129,6 +134,37 @@ class DemoSeeder extends Seeder
         $this->seedQualification($versionA, $versionB);
         $this->seedDiagnostic($versionA, $apiA);
         $this->seedAuditPeriods($macro);
+        $this->seedRemediation($macro);
+    }
+
+    /**
+     * L8: a security work package with three actions, one of them done with its test evidence.
+     */
+    private function seedRemediation(Product $product): void
+    {
+        $sql = Issue::query()->where('title', 'Requêtes SQL construites par concaténation')->first();
+        $package = app(SaveWorkPackage::class)->handle([
+            'product_id' => $product->id, 'name' => 'Lot 1 — Sécurité des accès aux données', 'objective' => 'Supprimer les injections SQL avant la convergence.',
+            'starts_on' => now()->subWeeks(2)->toDateString(), 'due_on' => now()->addWeeks(6)->toDateString(), 'status' => WorkPackageStatus::InProgress,
+        ]);
+        $save = fn (array $data, array $dependencies = []) => app(SaveRemediationAction::class)->handle([
+            'product_id' => $product->id, 'work_package_id' => $package->id, 'issue_id' => $sql?->id, 'description' => null,
+            'priority' => ActionPriority::P1, 'status' => ActionStatus::Todo, 'owner_id' => null, 'starts_on' => null, 'due_on' => null,
+            'effort_days' => null, 'acceptance_criteria' => null, 'test_evidence' => null, 'gitlab_issue_url' => null, ...$data,
+        ], null, $dependencies);
+
+        $review = $save([
+            'title' => 'Recenser les requêtes concaténées', 'status' => ActionStatus::Done, 'starts_on' => now()->subWeeks(2)->toDateString(),
+            'due_on' => now()->subWeek()->toDateString(), 'effort_days' => '1', 'acceptance_criteria' => 'Liste exhaustive des requêtes à corriger, revue par un second développeur.',
+            'test_evidence' => 'Revue de code du dépôt satis/macro-demo-a-api, liste jointe au ticket.',
+        ]);
+        $fix = $save([
+            'title' => 'Passer les dépôts de données en requêtes préparées', 'status' => ActionStatus::InProgress, 'starts_on' => now()->subWeek()->toDateString(),
+            'due_on' => now()->addWeeks(2)->toDateString(), 'effort_days' => '3', 'acceptance_criteria' => 'Aucune concaténation d’entrée utilisateur dans une requête ; Semgrep sans résultat sur la règle tainted-sql-string.',
+        ], [$review->id]);
+        $save([
+            'title' => 'Ajouter des tests d’injection SQL', 'priority' => ActionPriority::P2, 'due_on' => now()->addWeeks(4)->toDateString(), 'effort_days' => '1.5',
+        ], [$fix->id]);
     }
 
     /**

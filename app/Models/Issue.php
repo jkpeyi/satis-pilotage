@@ -110,4 +110,14 @@ class Issue extends Model
     {
         return $this->hasMany(DiagnosticFinding::class);
     }
+
+    /**
+     * Remediation actions treating this problem (L8).
+     *
+     * @return HasMany<RemediationAction, $this>
+     */
+    public function remediationActions(): HasMany
+    {
+        return $this->hasMany(RemediationAction::class);
+    }
 }

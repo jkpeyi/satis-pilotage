@@ -2,6 +2,7 @@
 
 namespace App\Reports\Builders;
 
+use App\Enums\ActionStatus;
 use App\Enums\FindingStatus;
 use App\Enums\ImplementationStatus;
 use App\Enums\IssueSeverity;
@@ -11,6 +12,7 @@ use App\Models\AuditPeriod;
 use App\Models\DiagnosticFinding;
 use App\Models\Implementation;
 use App\Models\Issue;
+use App\Models\RemediationAction;
 use App\Models\Repository;
 use App\Models\Version;
 use App\Reports\Content\ReportContent;
@@ -59,6 +61,11 @@ final class L6Builder implements ReportBuilder
             ->whereHas('campaign', fn ($query) => $query->whereNull('archived_at')->whereIn('repository_id', $repositories->pluck('id')))
             ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
 
+        $actions = RemediationAction::query()->where('product_id', $product->id)->whereNull('archived_at')
+            ->where('status', '!=', ActionStatus::Cancelled->value)
+            ->when($customer !== null, fn ($query) => $query->whereHas('issue.implementations', fn ($query) => $query->whereIn('version_id', $versionIds)))
+            ->get();
+
         $periods = AuditPeriod::query()->active()->where('product_id', $product->id)
             ->where('starts_on', '<=', $today->toDateString())->orderBy('starts_on')->get();
 
@@ -68,10 +75,10 @@ final class L6Builder implements ReportBuilder
         );
 
         return $content
-            ->set('dashboard.executive_summary', $this->indicators($today->format('d/m/Y'), $versions, $futureCount, $repositories, $featureImplementations, $open, $issues, $findings, $periods))
+            ->set('dashboard.executive_summary', $this->indicators($today->format('d/m/Y'), $versions, $futureCount, $repositories, $featureImplementations, $open, $issues, $findings, $periods, $actions))
             ->set('dashboard.coverage', $this->coverage($versions, $repositories, $featureImplementations, $findings))
             ->set('dashboard.risks', $this->risks($open, $gaps))
-            ->set('dashboard.actions', $this->actions($issues))
+            ->set('dashboard.actions', $this->actions($issues, $actions))
             ->set('dashboard.capacity', $this->capacity($periods, $customer !== null))
             ->set('dashboard.pending_decisions', $this->pendingDecisions($open, $findings))
             ->set('dashboard.methodology', $this->methodology($today->format('d/m/Y'), $futureCount));
@@ -85,8 +92,9 @@ final class L6Builder implements ReportBuilder
      * @param  Collection<int, Issue>  $issues
      * @param  Collection<string, int>  $findings
      * @param  Collection<int, AuditPeriod>  $periods
+     * @param  Collection<int, RemediationAction>  $actions
      */
-    private function indicators(string $date, Collection $versions, int $futureCount, Collection $repositories, Collection $features, Collection $open, Collection $issues, Collection $findings, Collection $periods): TableSection
+    private function indicators(string $date, Collection $versions, int $futureCount, Collection $repositories, Collection $features, Collection $open, Collection $issues, Collection $findings, Collection $periods, Collection $actions): TableSection
     {
         $analyzed = $repositories->where('analyzed', true)->count();
         $reviewed = $features->filter(fn (Implementation $item): bool => $item->status !== ImplementationStatus::Unknown)->count();
@@ -126,8 +134,16 @@ final class L6Builder implements ReportBuilder
                 'basis' => sprintf('sur %d résultat%s importé%s', $total = (int) $findings->sum(), $this->plural($total), $this->plural($total)),
                 'source' => 'Diagnostics (L4)',
             ])
-            ->row(['indicator' => 'Actions ouvertes', 'value' => null, 'source' => 'Plan d’actions (L8) pas encore tenu dans l’application'])
-            ->row(['indicator' => 'Actions fermées', 'value' => null, 'source' => 'Plan d’actions (L8) pas encore tenu dans l’application'])
+            ->row([
+                'indicator' => 'Actions ouvertes', 'value' => $actions->filter(fn (RemediationAction $action): bool => $action->status->isOpen())->count(),
+                'basis' => sprintf('à faire, en cours ou bloquées ; %d en retard', $actions->filter(fn (RemediationAction $action): bool => $action->isLate())->count()),
+                'source' => 'Plan d’actions (L8)',
+            ])
+            ->row([
+                'indicator' => 'Actions fermées', 'value' => $actions->where('status', ActionStatus::Done)->count(),
+                'basis' => sprintf('terminées avec leur preuve de test, sur %d action%s au plan (annulées exclues)', $actions->count(), $this->plural($actions->count())),
+                'source' => 'Plan d’actions (L8)',
+            ])
             ->row([
                 'indicator' => 'Heures d’audit prévues', 'value' => $periods->isEmpty() ? null : $this->hours($periods->sum(fn (AuditPeriod $period): float => (float) $period->hours_planned)),
                 'basis' => $periods->isEmpty() ? 'aucune période saisie' : sprintf('%d période%s commencée%s à cette date', $periods->count(), $this->plural($periods->count()), $this->plural($periods->count())),
@@ -213,10 +229,25 @@ final class L6Builder implements ReportBuilder
 
     /**
      * @param  Collection<int, Issue>  $issues
+     * @param  Collection<int, RemediationAction>  $actions
      */
-    private function actions(Collection $issues): TextSection
+    private function actions(Collection $issues, Collection $actions): TextSection
     {
-        $section = (new TextSection)->paragraph('Le plan d’actions (L8) n’est pas encore tenu dans l’application : les actions ouvertes et fermées sont à confirmer. En attendant, l’avancement du traitement des problèmes :');
+        $section = new TextSection;
+        if ($actions->isEmpty()) {
+            $section->paragraph('Aucune action au plan d’actions (L8) pour ce périmètre.');
+        } else {
+            $section->paragraph('Plan d’actions (L8) :')->bullets(array_values(array_filter(array_map(
+                fn (ActionStatus $status): ?string => ($count = $actions->where('status', $status)->count()) > 0 ? sprintf('%s : %d', $status->label(), $count) : null,
+                ActionStatus::cases(),
+            ))));
+            $late = $actions->filter(fn (RemediationAction $action): bool => $action->isLate());
+            if ($late->isNotEmpty()) {
+                $section->paragraph(sprintf('%d action%s en retard : %s.', $late->count(), $this->plural($late->count()), $late->take(10)->map(fn (RemediationAction $action): string => $action->displayCode())->implode(', ')));
+            }
+        }
+
+        $section->paragraph('Avancement du traitement des problèmes :');
 
         $done = $issues->filter(fn (Issue $issue): bool => in_array($issue->status, [IssueStatus::Treated, IssueStatus::Verified], true))->count();
         $considered = $issues->where('status', '!=', IssueStatus::Dropped)->count();
@@ -320,7 +351,8 @@ final class L6Builder implements ReportBuilder
                 'Fonctionnalité évaluée : rattachement d’une fonctionnalité à une application dont l’état n’est plus « inconnu ». Le dénominateur est le nombre de rattachements, une fonctionnalité pouvant être présente dans plusieurs applications.',
                 'Constat critique : problème bloquant encore à traiter (identifié, qualifié ou planifié).',
                 'Heures : saisies par période dans le suivi de l’audit ; seules les périodes commencées à la date de la photographie sont comptées, et le réalisé est comparé au prévu des mêmes périodes.',
-                'Actions et décisions : à confirmer tant que les livrables L8 et L7 ne sont pas tenus dans l’application ; aucune valeur n’est déduite à leur place.',
+                'Actions : celles du plan d’actions (L8), annulées et archivées exclues ; avec un client, celles qui traitent un problème de ses versions. Une action fermée est terminée avec sa preuve de test.',
+                'Décisions : à confirmer tant que la stratégie de refactoring (L7) n’est pas tenue dans l’application ; aucune valeur n’est déduite à sa place.',
             ]);
     }
 

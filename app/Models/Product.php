@@ -59,4 +59,12 @@ class Product extends Model
     {
         return $this->hasMany(Workflow::class);
     }
+
+    /**
+     * @return HasMany<WorkPackage, $this>
+     */
+    public function workPackages(): HasMany
+    {
+        return $this->hasMany(WorkPackage::class);
+    }
 }
