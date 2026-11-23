@@ -98,7 +98,7 @@
                                 <x-ui.input label="Code" wire:model="form.code" class="font-mono uppercase" />
                             </div>
                             <x-ui.textarea label="Description standard" wire:model="form.standard_description" rows="6"
-                                hint="Comportement attendu, en Markdown. Les écarts de chaque version sont décrits par rapport à ce texte." />
+                                hint="Comportement attendu, en Markdown. La description fonctionnelle de chaque version la complète." />
                             @if ($products->isNotEmpty())
                                 <fieldset>
                                     <legend class="text-sm font-medium text-slate-700">Produits concernés</legend>

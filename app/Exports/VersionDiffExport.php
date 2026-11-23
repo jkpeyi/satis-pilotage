@@ -52,7 +52,7 @@ final class VersionDiffExport implements Export, WithMultipleSheets
         return [
             new SimpleSheet('Uniquement '.$this->short($this->a), ['Élément', 'Type', 'Chemin', 'État dans '.$this->a->name, 'Dans '.$this->b->name, 'Sous-éléments inclus'], $onlyIn($this->diff['onlyInA'], $this->b)),
             new SimpleSheet('Uniquement '.$this->short($this->b), ['Élément', 'Type', 'Chemin', 'État dans '.$this->b->name, 'Dans '.$this->a->name, 'Sous-éléments inclus'], $onlyIn($this->diff['onlyInB'], $this->a)),
-            new SimpleSheet('Présents mais différents', ['Élément', 'Type', 'Chemin', 'Différences', 'État '.$this->a->name, 'État '.$this->b->name, 'Écart '.$this->a->name, 'Écart '.$this->b->name], $different),
+            new SimpleSheet('Présents mais différents', ['Élément', 'Type', 'Chemin', 'Différences', 'État '.$this->a->name, 'État '.$this->b->name, 'Description fonctionnelle '.$this->a->name, 'Description fonctionnelle '.$this->b->name], $different),
         ];
     }
 

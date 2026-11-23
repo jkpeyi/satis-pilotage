@@ -2,12 +2,13 @@
 
 namespace App\Actions\Referential;
 
+use App\Enums\CustomerType;
 use App\Models\Customer;
 
 final class SaveCustomer
 {
     /**
-     * @param  array{name: string, country: ?string, notes: ?string}  $data
+     * @param  array{name: string, type: ?CustomerType, country: ?string, notes: ?string}  $data
      */
     public function handle(array $data, ?Customer $customer = null): Customer
     {

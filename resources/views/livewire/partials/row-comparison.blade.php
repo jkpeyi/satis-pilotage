@@ -39,7 +39,7 @@
                             @endforeach
                         </tr>
                         <tr>
-                            <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Écart</th>
+                            <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Description fonctionnelle</th>
                             @foreach ($comparison['versions'] as $version)
                                 @php($implementation = $comparison['implementations'][$version->id])
                                 <td class="border-b border-slate-100 px-3 py-3">

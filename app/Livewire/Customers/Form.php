@@ -4,6 +4,8 @@ namespace App\Livewire\Customers;
 
 use App\Actions\Referential\ArchiveRecord;
 use App\Actions\Referential\SaveCustomer;
+use App\Enums\CustomerType;
+use App\Livewire\Concerns\EnumOptions;
 use App\Livewire\Forms\CustomerForm;
 use App\Models\Customer;
 use Illuminate\Contracts\View\View;
@@ -11,6 +13,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use EnumOptions;
+
     public CustomerForm $form;
 
     public function mount(?Customer $customer = null): void
@@ -45,6 +49,6 @@ class Form extends Component
     {
         $title = $this->form->customer ? 'Modifier '.$this->form->customer->name : 'Nouveau client';
 
-        return view('livewire.customers.form')->title($title);
+        return view('livewire.customers.form', ['types' => $this->enumOptions(CustomerType::class)])->title($title);
     }
 }

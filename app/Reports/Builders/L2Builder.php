@@ -192,7 +192,7 @@ final class L2Builder implements ReportBuilder
             ->column('client_id', 'Client')
             ->column('presence_status', 'Présence')
             ->column('operational_status', 'Fonctionnement')
-            ->column('deviation', 'Écart', required: false)
+            ->column('deviation', 'Description fonctionnelle', required: false)
             ->column('verification_status', 'Vérification')
             ->column('verified_by', 'Vérifié par');
 
@@ -306,13 +306,13 @@ final class L2Builder implements ReportBuilder
             $verified = $rows->where('verification_status', VerificationStatus::Verified->value)->count();
 
             $summaries[] = sprintf(
-                '%s · %s : %d absente%s, %d défaillante%s, %d partielle%s, %d de présence inconnue, %d écart%s décrit%s ; %d sur %d vérifiée%s.',
+                '%s · %s : %d absente%s, %d défaillante%s, %d partielle%s, %d de présence inconnue, %d description%s fonctionnelle%s renseignée%s ; %d sur %d vérifiée%s.',
                 $version->displayCode(), $version->name,
                 $absent, $this->plural($absent),
                 $defective, $this->plural($defective),
                 $partial, $this->plural($partial),
                 $unknown,
-                $deviations, $this->plural($deviations), $this->plural($deviations),
+                $deviations, $this->plural($deviations), $this->plural($deviations), $this->plural($deviations),
                 $verified, $rows->count(), $this->plural($verified),
             );
         }

@@ -117,7 +117,7 @@ final class VersionDiff
         }
 
         if (trim((string) $a->deviation) !== trim((string) $b->deviation)) {
-            $reasons[] = 'Écart';
+            $reasons[] = 'Description fonctionnelle';
         }
 
         if ($this->ruleSignature($a) !== $this->ruleSignature($b)) {

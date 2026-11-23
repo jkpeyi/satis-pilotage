@@ -52,7 +52,7 @@
 
         <x-ui.card title="Présents dans les deux, mais différents" class="mt-6">
             @if ($diff['different'] === [])
-                <p class="text-sm text-slate-500">Aucune différence d'état, d'écart ou de règles métier sur les éléments communs.</p>
+                <p class="text-sm text-slate-500">Aucune différence d'état, de description fonctionnelle ou de règles métier sur les éléments communs.</p>
             @else
                 <x-ui.table>
                     <x-slot:head>
@@ -77,13 +77,13 @@
                                 <a href="{{ route('implementations.show', $entry['a']) }}" wire:navigate>
                                     <x-ui.badge :color="$entry['a']->status->color()">{{ $entry['a']->status->label() }}</x-ui.badge>
                                 </a>
-                                @if ($entry['a']->deviation) <span class="ml-1 text-xs text-amber-700" title="Écart décrit">≠</span> @endif
+                                @if ($entry['a']->deviation) <span class="ml-1 text-xs text-amber-700" title="Description fonctionnelle renseignée">≠</span> @endif
                             </td>
                             <td>
                                 <a href="{{ route('implementations.show', $entry['b']) }}" wire:navigate>
                                     <x-ui.badge :color="$entry['b']->status->color()">{{ $entry['b']->status->label() }}</x-ui.badge>
                                 </a>
-                                @if ($entry['b']->deviation) <span class="ml-1 text-xs text-amber-700" title="Écart décrit">≠</span> @endif
+                                @if ($entry['b']->deviation) <span class="ml-1 text-xs text-amber-700" title="Description fonctionnelle renseignée">≠</span> @endif
                             </td>
                             <td class="text-right">
                                 <x-ui.button size="sm" variant="ghost" class="whitespace-nowrap" wire:click="compareRow('{{ $entry['key'] }}')">Voir le détail</x-ui.button>
