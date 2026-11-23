@@ -1,6 +1,6 @@
 @php($implementation = $byModule->get($moduleId))
 @if ($implementation)
-    <li x-data="{ open: true }" wire:key="scope-module-{{ $moduleId }}">
+    <li x-data="{ open: false }" x-on:scope-tree.window="open = $event.detail" wire:key="scope-module-{{ $moduleId }}">
         @include('livewire.versions.partials.scope-row', [
             'name' => $tree->modules[$moduleId]['name'],
             'isModule' => true,

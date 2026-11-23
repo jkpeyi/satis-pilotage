@@ -17,8 +17,9 @@
 
     <x-ui.card class="max-w-2xl">
         <form wire:submit="save" class="space-y-4">
+            <x-ui.input label="Nom" wire:model="form.name" required />
             <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.input label="Nom" wire:model="form.name" required />
+                <x-ui.select label="Type de client" wire:model="form.type" :options="$types" placeholder="À préciser" />
                 <x-ui.input label="Pays" wire:model="form.country" />
             </div>
             <x-ui.textarea label="Notes" wire:model="form.notes" hint="Markdown accepté." />

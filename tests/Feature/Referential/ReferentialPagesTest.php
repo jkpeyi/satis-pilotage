@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CustomerType;
 use App\Livewire\Customers;
 use App\Livewire\Products;
 use App\Livewire\Technologies;
@@ -98,11 +99,34 @@ it('archives and restores a product', function () {
 it('creates a customer', function () {
     Livewire::test(Customers\Form::class)
         ->set('form.name', 'Banque Atlantique')
+        ->set('form.type', 'bank')
         ->set('form.country', "Côte d'Ivoire")
         ->call('save')
         ->assertHasNoErrors();
 
-    expect(Customer::query()->sole()->country)->toBe("Côte d'Ivoire");
+    expect(Customer::query()->sole())
+        ->country->toBe("Côte d'Ivoire")
+        ->type->toBe(CustomerType::Bank);
+});
+
+it('lists customers with their type and filters by type', function () {
+    Customer::factory()->create(['name' => 'Assur Plus', 'type' => CustomerType::Insurance]);
+    Customer::factory()->create(['name' => 'Banque Atlantique', 'type' => CustomerType::Bank]);
+    Customer::factory()->create(['name' => 'Sans type', 'type' => null]);
+
+    Livewire::test(Customers\Index::class)
+        ->assertSee('Assurance')
+        ->set('type', 'insurance')
+        ->assertSee('Assur Plus')
+        ->assertDontSee('Banque Atlantique')
+        ->assertDontSee('Sans type');
+
+    Livewire::test(Customers\Form::class, ['customer' => Customer::query()->where('name', 'Assur Plus')->sole()])
+        ->assertSet('form.type', 'insurance')
+        ->set('form.type', '')
+        ->call('save');
+
+    expect(Customer::query()->where('name', 'Assur Plus')->sole()->type)->toBeNull();
 });
 
 it('creates a baseline version without customer', function () {

@@ -66,7 +66,7 @@ class AssessmentForm extends Form
      */
     protected function validationAttributes(): array
     {
-        return ['presence' => 'présence', 'operation' => 'fonctionnement', 'deviation' => 'écart', 'assessment_note' => 'commentaire'];
+        return ['presence' => 'présence', 'operation' => 'fonctionnement', 'deviation' => 'description fonctionnelle', 'assessment_note' => 'commentaire'];
     }
 
     /**

@@ -58,7 +58,7 @@ it('lists items present in both versions but different, with the reasons', funct
     $diff = app(VersionDiff::class)->build($this->a, $this->b);
 
     expect(array_column($diff['different'], 'name'))->toBe(['Simulation', 'Scoring'])
-        ->and($diff['different'][0]['reasons'])->toBe(['État', 'Écart'])
+        ->and($diff['different'][0]['reasons'])->toBe(['État', 'Description fonctionnelle'])
         ->and($diff['different'][1]['reasons'])->toBe(['Règles métier'])
         ->and($diff['counts']['same'])->toBe(1);
 });

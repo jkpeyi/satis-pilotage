@@ -1,5 +1,5 @@
 <div>
-    <x-ui.page-header title="Cartographie des écarts" description="Éléments du catalogue × versions : état, écarts, règles et problèmes, comparés à une version pivot." />
+    <x-ui.page-header title="Cartographie des écarts" description="Éléments du catalogue × versions : état, description fonctionnelle, règles et problèmes, comparés à une version pivot." />
 
     {{-- Selection (EF-301) --}}
     <div class="mb-4 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[14rem_minmax(0,1fr)_16rem]">
@@ -39,7 +39,7 @@
                     </select>
                 </label>
                 <label class="flex items-center gap-1.5"><input type="checkbox" x-model="filters.diffOnly" class="rounded border-slate-300 text-brand-700"> Différences seulement</label>
-                <label class="flex items-center gap-1.5"><input type="checkbox" x-model="filters.withDeviation" class="rounded border-slate-300 text-brand-700"> Avec écart</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" x-model="filters.withDeviation" class="rounded border-slate-300 text-brand-700"> Avec description fonctionnelle</label>
                 <label class="flex items-center gap-1.5"><input type="checkbox" x-model="filters.withIssue" class="rounded border-slate-300 text-brand-700"> Avec problème</label>
                 <select x-model="filters.status" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" aria-label="Filtrer par état">
                     <option value="">Tous les états</option>
@@ -82,8 +82,8 @@
                 </table>
             </div>
             <p class="mt-2 text-xs text-slate-500">
-                « — » : non rattaché (hors périmètre du client). ≠ : écart décrit. RM : règles métier. PB : problèmes.
-                Cadre orange : différent du pivot (rattachement, état ou présence d'un écart). Cliquez une cellule pour le détail, un nom pour comparer l'élément entre les versions.
+                « — » : non rattaché (hors périmètre du client). ≠ : description fonctionnelle renseignée. RM : règles métier. PB : problèmes.
+                Cadre orange : différent du pivot (rattachement, état ou présence d'une description fonctionnelle). Cliquez une cellule pour le détail, un nom pour comparer l'élément entre les versions.
             </p>
         </div>
     @endif
@@ -101,11 +101,11 @@
             </div>
             <x-ui.badge :color="$panel->status->color()">{{ $panel->status->label() }}</x-ui.badge>
 
-            <h3 class="mb-1 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">Écart</h3>
+            <h3 class="mb-1 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">Description fonctionnelle</h3>
             @if ($panel->deviation)
                 <x-ui.markdown :text="$panel->deviation" />
             @else
-                <p class="text-sm text-slate-500">Conforme à la description standard.</p>
+                <p class="text-sm text-slate-500">Non renseignée : se référer à la description standard.</p>
             @endif
 
             <h3 class="mb-1 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">Règles métier</h3>

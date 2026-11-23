@@ -33,7 +33,13 @@ export default () => ({
 
     async init() {
         await this.load();
-        this.$watch('filters', () => this.render(), { deep: true });
+        this.$watch('filters', () => {
+            // A filter shows every matching row, even under a folded module.
+            if (Object.values(this.filters).some(Boolean)) {
+                this.collapsed = {};
+            }
+            this.render();
+        }, { deep: true });
         this.$watch('pivot', () => {
             this.$wire.setPivot(this.pivot);
             this.render();
@@ -47,9 +53,9 @@ export default () => ({
         this.byKey = Object.fromEntries(payload.rows.map((row) => [row.key, row]));
         this.parents = new Set(payload.rows.map((row) => row.parent).filter(Boolean));
         this.pivot = payload.versions.some((version) => version.id === payload.pivot) ? payload.pivot : payload.versions[0]?.id ?? null;
-        this.collapsed = {};
         this.loading = false;
-        this.render();
+        // Modules are folded when arriving on the page.
+        this.collapseAll(true);
     },
 
     cell(row, versionId) {

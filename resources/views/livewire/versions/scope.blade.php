@@ -80,6 +80,10 @@
                 @endforelse
             </ul>
         @else
+            <div class="flex justify-end gap-3 px-3 pt-2 text-xs">
+                <button type="button" x-on:click="$dispatch('scope-tree', true)" class="text-slate-500 hover:text-slate-900">Tout déplier</button>
+                <button type="button" x-on:click="$dispatch('scope-tree', false)" class="text-slate-500 hover:text-slate-900">Tout replier</button>
+            </div>
             <ul>
                 @foreach ($tree->rootModuleIds() as $moduleId)
                     @include('livewire.versions.partials.scope-module', ['moduleId' => $moduleId, 'depth' => 0])
@@ -160,7 +164,7 @@
             <fieldset class="space-y-2 text-sm text-slate-700">
                 <legend class="text-sm font-medium text-slate-700">Reprendre aussi</legend>
                 <label class="flex items-center gap-2"><input type="checkbox" wire:model="initStatuses" class="rounded border-slate-300 text-brand-700"> Les états (tracés dans l'historique)</label>
-                <label class="flex items-center gap-2"><input type="checkbox" wire:model="initDeviations" class="rounded border-slate-300 text-brand-700"> Les écarts</label>
+                <label class="flex items-center gap-2"><input type="checkbox" wire:model="initDeviations" class="rounded border-slate-300 text-brand-700"> Les descriptions fonctionnelles</label>
                 <label class="flex items-center gap-2"><input type="checkbox" wire:model="initRules" class="rounded border-slate-300 text-brand-700"> Les règles métier, avec un lien vers leur origine</label>
             </fieldset>
             <div class="flex gap-2">

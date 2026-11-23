@@ -62,7 +62,7 @@ final class ComparisonMatrixExport implements FromArray, ShouldAutoSize, WithEve
         }
 
         $lines[] = [];
-        $lines[] = ['Légende : « — » non rattaché (hors périmètre du client) ; « ≠ » écart décrit ; RM règles métier ; PB problèmes. En gras : différent de la version pivot.'];
+        $lines[] = ['Légende : « — » non rattaché (hors périmètre du client) ; « ≠ » description fonctionnelle renseignée ; RM règles métier ; PB problèmes. En gras : différent de la version pivot.'];
 
         return $lines;
     }

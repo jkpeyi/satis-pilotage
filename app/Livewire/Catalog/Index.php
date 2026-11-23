@@ -29,7 +29,6 @@ use App\Queries\CatalogTree;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
-use Livewire\Attributes\Session;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -40,8 +39,7 @@ use Livewire\Component;
 #[Title('Catalogue')]
 class Index extends Component
 {
-    /** @var list<int> */
-    #[Session]
+    /** @var list<int> Modules unfolded in the tree: none when arriving on the page. */
     public array $expanded = [];
 
     #[Url(except: '')]

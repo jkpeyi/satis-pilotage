@@ -15,6 +15,7 @@ use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Enums\ComponentType;
 use App\Enums\Confidence;
+use App\Enums\CustomerType;
 use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IntegrationProtocol;
@@ -55,8 +56,8 @@ class DemoSeeder extends Seeder
         $macro = Product::query()->create(['code' => 'MACRO', 'name' => 'Satis Macro', 'description' => 'Solution de gestion pour la microfinance.']);
         Product::query()->create(['code' => 'PRO', 'name' => 'Satis Pro', 'description' => 'Solution pour les banques.']);
 
-        $customerA = Customer::query()->create(['name' => 'Banque Démo A', 'country' => 'Pays A']);
-        $customerB = Customer::query()->create(['name' => 'Institution Démo B', 'country' => 'Pays B']);
+        $customerA = Customer::query()->create(['name' => 'Banque Démo A', 'type' => CustomerType::Bank, 'country' => 'Pays A']);
+        $customerB = Customer::query()->create(['name' => 'Institution Démo B', 'type' => CustomerType::Microfinance, 'country' => 'Pays B']);
 
         $baseline = Version::query()->create(['product_id' => $macro->id, 'name' => 'Socle Macro', 'status' => 'in_production']);
         $versionA = Version::query()->create(['product_id' => $macro->id, 'customer_id' => $customerA->id, 'name' => 'Satis Macro – Banque Démo A', 'status' => 'in_production', 'is_historical_pivot' => true]);

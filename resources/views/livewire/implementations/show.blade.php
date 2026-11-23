@@ -21,7 +21,7 @@
                 @if ($item->standard_description)
                     <x-ui.markdown :text="$item->standard_description" />
                 @else
-                    <p class="text-sm text-slate-500">Pas encore de description standard dans le catalogue. L'écart se décrit par rapport à elle.</p>
+                    <p class="text-sm text-slate-500">Pas encore de description standard dans le catalogue. La description fonctionnelle de chaque version la complète.</p>
                 @endif
             </x-ui.card>
 
@@ -39,14 +39,14 @@
                         <x-ui.select label="Vérification" wire:model="assessment.verification_status" :options="$verificationStatuses" required
                             :hint="$implementation->verifier ? 'Par '.$implementation->verifier->name.' le '.$implementation->verified_at?->format('d/m/Y') : null" />
                     </div>
-                    <x-ui.textarea label="Écart" wire:model="assessment.deviation" rows="6"
-                        hint="En quoi cette version diffère de la description standard. Markdown. Laisser vide si conforme." />
+                    <x-ui.textarea label="Description fonctionnelle" wire:model="assessment.deviation" rows="6"
+                        hint="Comment l’élément fonctionne dans cette version, en particulier ce qui diffère de la description standard. Markdown." />
                     <x-ui.button type="submit">Enregistrer l'évaluation</x-ui.button>
                 </form>
 
                 @if ($implementation->deviation)
                     <div class="mt-5 border-t border-slate-200 pt-4">
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Écart enregistré</p>
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Description fonctionnelle enregistrée</p>
                         <x-ui.markdown :text="$implementation->deviation" />
                     </div>
                 @endif

@@ -34,7 +34,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Business term (UI, French) | Code |
 |---|---|
 | Produit | `Product` |
-| Client | `Customer` (avoids confusion with `GitLabClient` / HTTP client) |
+| Client, type de client | `Customer` (avoids confusion with `GitLabClient` / HTTP client), `CustomerType` (bank, insurance, microfinance, other) |
 | Version | `Version` |
 | Version de référence | `Product::referenceVersion` |
 | Dépôt | `Repository` |
@@ -53,7 +53,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | État | `ImplementationStatus`: one value per valid (presence, operation) pair of the README d'intégration |
 | Présence, fonctionnement | `FeaturePresence`, `FeatureOperation`, derived with `presence()` / `operation()`, combined with `fromAxes()` |
 | Historique d'état | `ImplementationStatusChange` |
-| Écart | `deviation` |
+| Description fonctionnelle (formerly « écart ») | `deviation`: how the item works in this version |
 | Description standard | `standard_description` |
 | Règle métier | `BusinessRule` (displayed `RM-0042`) |
 | Composant, intégration | `Component` (displayed `CMP-0001`, a technical part of a version), `Integration` (`INT-0001`, from a component to another component or to an `external_system`: exactly one target, CHECK) |
@@ -90,7 +90,7 @@ Each rule must be covered by at least one Pest test whose name starts with its c
 - **RG-04** Attaching an item also attaches its ancestors; descendants are offered by default. New implementations start as `unknown` (presence unknown, not tested).
 - **RG-05** No implementation means "out of scope for this customer". `absent` means "expected but absent". Only `absent` counts as a gap in reports (`ImplementationStatus::isGap()`).
 - **RG-06** Every status change writes one `ImplementationStatusChange` row. That history is append-only.
-- **RG-07** A deviation is described relative to the catalog `standard_description`, never relative to another version.
+- **RG-07** A version's functional description (`deviation`) says how the item works in that version, compared with the catalog `standard_description`, never with another version.
 - **RG-08** A product's reference version is the default pivot of the comparison matrix. It may be a baseline version with no customer.
 - **RG-09** An issue concerns at least one implementation, possibly in several versions.
 - **RG-10** A code anchor coming from GitLab always stores the commit SHA and a copy of the snippet.

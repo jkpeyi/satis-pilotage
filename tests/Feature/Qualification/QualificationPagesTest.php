@@ -62,7 +62,9 @@ it('EF-205: shows the standard description and saves the assessment', function (
         ->set('assessment.verification_status', 'verified')
         ->call('saveAssessment')
         ->assertHasNoErrors()
-        ->assertDispatched('notify');
+        ->assertDispatched('notify')
+        ->assertSee('Description fonctionnelle enregistrée')
+        ->assertDontSee('Écart');
 
     expect($this->implementation->refresh()->status)->toBe(ImplementationStatus::Defective)
         ->and($this->implementation->verification_status)->toBe(VerificationStatus::Verified)

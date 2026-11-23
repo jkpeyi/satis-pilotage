@@ -19,6 +19,15 @@ it('renders the catalog page', function () {
     $this->get(route('catalog.index'))->assertOk()->assertSee('Crédit');
 });
 
+it('shows the tree folded when arriving on the page, whatever was unfolded before', function () {
+    $credit = Module::factory()->create(['name' => 'Crédit']);
+    Feature::factory()->create(['name' => 'Simulation', 'module_id' => $credit->id]);
+
+    Livewire::test(Index::class)->call('toggle', $credit->id)->assertSee('Simulation');
+
+    Livewire::test(Index::class)->assertSet('expanded', [])->assertSee('Crédit')->assertDontSee('Simulation');
+});
+
 it('EF-202: creates items with the keyboard: Enter, Tab and kind switch', function () {
     $component = Livewire::test(Index::class)
         ->call('startDraft', null)
