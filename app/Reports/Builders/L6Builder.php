@@ -3,6 +3,8 @@
 namespace App\Reports\Builders;
 
 use App\Enums\ActionStatus;
+use App\Enums\ApprovalStatus;
+use App\Enums\DecisionStatus;
 use App\Enums\FindingStatus;
 use App\Enums\ImplementationStatus;
 use App\Enums\IssueSeverity;
@@ -12,8 +14,10 @@ use App\Models\AuditPeriod;
 use App\Models\DiagnosticFinding;
 use App\Models\Implementation;
 use App\Models\Issue;
+use App\Models\RefactoringStrategy;
 use App\Models\RemediationAction;
 use App\Models\Repository;
+use App\Models\StrategyDecision;
 use App\Models\Version;
 use App\Reports\Content\ReportContent;
 use App\Reports\Content\TableSection;
@@ -80,7 +84,7 @@ final class L6Builder implements ReportBuilder
             ->set('dashboard.risks', $this->risks($open, $gaps))
             ->set('dashboard.actions', $this->actions($issues, $actions))
             ->set('dashboard.capacity', $this->capacity($periods, $customer !== null))
-            ->set('dashboard.pending_decisions', $this->pendingDecisions($open, $findings))
+            ->set('dashboard.pending_decisions', $this->pendingDecisions($open, $findings, $product->id))
             ->set('dashboard.methodology', $this->methodology($today->format('d/m/Y'), $futureCount));
     }
 
@@ -317,9 +321,26 @@ final class L6Builder implements ReportBuilder
      * @param  Collection<int, Issue>  $open
      * @param  Collection<string, int>  $findings
      */
-    private function pendingDecisions(Collection $open, Collection $findings): TextSection
+    private function pendingDecisions(Collection $open, Collection $findings, int $productId): TextSection
     {
-        $section = (new TextSection)->paragraph('Le registre des décisions (L7) n’est pas encore tenu dans l’application. Points à arbitrer relevés dans les données :');
+        $section = new TextSection;
+
+        $decisions = StrategyDecision::query()->whereNull('archived_at')->where('status', DecisionStatus::Proposed->value)
+            ->whereHas('strategy', fn ($query) => $query->whereNull('archived_at')->where('product_id', $productId))
+            ->with('strategy')->orderBy('id')->get();
+        $inReview = RefactoringStrategy::query()->whereNull('archived_at')->where('product_id', $productId)
+            ->where('approval_status', ApprovalStatus::InReview->value)->orderBy('id')->get();
+
+        if ($decisions->isEmpty() && $inReview->isEmpty()) {
+            $section->paragraph('Aucune décision en attente dans les stratégies de refactoring (L7).');
+        } else {
+            $section->paragraph('Stratégies de refactoring (L7) :')->bullets([
+                ...$inReview->map(fn (RefactoringStrategy $strategy): string => sprintf('%s · %s : en revue, à valider ou rejeter', $strategy->displayCode(), $strategy->title))->all(),
+                ...$decisions->map(fn (StrategyDecision $decision): string => sprintf('%s · %s (%s) : décision en attente', $decision->displayCode(), $decision->title, $decision->strategy->displayCode()))->all(),
+            ]);
+        }
+
+        $section->paragraph('Points à arbitrer relevés dans les données :');
 
         $qualified = $open->where('status', IssueStatus::Qualified);
         $blockingWithoutOwner = $open->where('severity', IssueSeverity::Blocking)->whereNull('owner_id');
@@ -352,7 +373,7 @@ final class L6Builder implements ReportBuilder
                 'Constat critique : problème bloquant encore à traiter (identifié, qualifié ou planifié).',
                 'Heures : saisies par période dans le suivi de l’audit ; seules les périodes commencées à la date de la photographie sont comptées, et le réalisé est comparé au prévu des mêmes périodes.',
                 'Actions : celles du plan d’actions (L8), annulées et archivées exclues ; avec un client, celles qui traitent un problème de ses versions. Une action fermée est terminée avec sa preuve de test.',
-                'Décisions : à confirmer tant que la stratégie de refactoring (L7) n’est pas tenue dans l’application ; aucune valeur n’est déduite à sa place.',
+                'Décisions : décisions « en attente » et stratégies « en revue » des stratégies de refactoring (L7) du produit, puis points à arbitrer tirés des données.',
             ]);
     }
 

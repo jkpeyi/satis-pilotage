@@ -8,6 +8,7 @@ use App\Livewire\Forms\ReportForm;
 use App\Models\Customer;
 use App\Models\DiagnosticCampaign;
 use App\Models\Product;
+use App\Models\RefactoringStrategy;
 use App\Models\ReportGeneration;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,7 @@ class Index extends Component
     {
         $this->form->customer_id = '';
         $this->form->campaign_id = '';
+        $this->form->strategy_id = '';
     }
 
     public function updatedFilterCode(): void
@@ -95,6 +97,8 @@ class Index extends Component
                 ->whereHas('repository.version', fn ($query) => $query->where('product_id', $this->form->product_id))
                 ->with('repository')->latest('id')->get()
                 ->mapWithKeys(fn (DiagnosticCampaign $campaign): array => [$campaign->id => $campaign->label()]),
+            'strategies' => RefactoringStrategy::query()->whereNull('archived_at')->where('product_id', $this->form->product_id)->latest('id')->get()
+                ->mapWithKeys(fn (RefactoringStrategy $strategy): array => [$strategy->id => $strategy->displayCode().' · '.$strategy->title.' ('.mb_strtolower($strategy->approval_status->label()).')']),
             'generations' => ReportGeneration::query()
                 ->with(['author', 'deleter'])
                 ->when($this->filterCode !== '', fn ($query) => $query->where('code', $this->filterCode))

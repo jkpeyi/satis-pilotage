@@ -12,7 +12,9 @@
                     @endforeach
                 </x-ui.select>
                 <x-ui.select label="Produit" wire:model.live="form.product_id" :options="$products" placeholder="Choisir un produit" required />
-                @if ($form->code === 'L4')
+                @if ($form->code === 'L7')
+                    <x-ui.select label="Stratégie de refactoring" wire:model="form.strategy_id" :options="$strategies" placeholder="Choisir une stratégie" required hint="L7 reprend la stratégie telle qu’elle est rédigée, avec son statut de validation." />
+                @elseif ($form->code === 'L4')
                     <x-ui.select label="Campagne de diagnostic" wire:model="form.campaign_id" :options="$campaigns" placeholder="Choisir une campagne" required hint="L4 porte sur un dépôt analysé à un commit précis." />
                 @else
                     <x-ui.select label="Client" wire:model="form.customer_id" :options="$customers" placeholder="Tous les clients" hint="Restreint le rapport aux versions de ce client." />
