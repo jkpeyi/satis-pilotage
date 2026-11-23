@@ -41,11 +41,11 @@ it('derives the cycle of a version without duplicating a known one', function (s
 
 it('registers the stack of a repository when it is saved, without a support date', function () {
     app(SaveRepository::class)->handle([
-        'version_id' => $this->version->id, 'path' => 'satis/api', 'web_url' => null, 'role' => RepositoryRole::Backend,
+        'version_id' => $this->version->id, 'web_url' => 'https://gitlab.example.test/satis/api', 'role' => RepositoryRole::Backend,
         'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['PHP' => '8.1.27', 'Laravel' => '9.52.16', 'composer' => 'latest'],
     ]);
     app(SaveRepository::class)->handle([
-        'version_id' => $this->version->id, 'path' => 'satis/batch', 'web_url' => null, 'role' => RepositoryRole::Other,
+        'version_id' => $this->version->id, 'web_url' => 'https://gitlab.example.test/satis/batch', 'role' => RepositoryRole::Other,
         'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['php' => '8.1.2'],
     ]);
 
