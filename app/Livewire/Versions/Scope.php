@@ -7,14 +7,19 @@ use App\Actions\Implementations\ChangeImplementationStatus;
 use App\Actions\Implementations\CreateCatalogItemInVersion;
 use App\Actions\Implementations\DetachCatalogItems;
 use App\Actions\Implementations\InitializeVersionFrom;
+use App\Actions\Implementations\MoveItemInVersionScope;
+use App\Actions\Implementations\ReuseCatalogItemInVersion;
 use App\Enums\ImplementationStatus;
 use App\Exceptions\DetachRequiresConfirmation;
 use App\Exceptions\DuplicateCatalogItem;
+use App\Models\Feature;
 use App\Models\Implementation;
+use App\Models\Module;
 use App\Models\User;
 use App\Models\Version;
 use App\Queries\CatalogSearch;
 use App\Queries\CatalogTree;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +29,8 @@ use Livewire\Component;
 
 /**
  * "Périmètre fonctionnel" of a version: its implementations as a tree, with their status (EF-210),
- * bulk status changes (EF-206), attach / detach (EF-204), creation from the version (EF-203).
+ * bulk status changes (EF-206), attach / detach (EF-204), inline creation from the version with
+ * catalog suggestions (EF-203, RG-15) and drag and drop in the shared catalog (RG-02).
  */
 class Scope extends Component
 {
@@ -52,13 +58,10 @@ class Scope extends Component
 
     public bool $attachWithDescendants = true;
 
-    public bool $showCreate = false;
+    /** @var array{parent_id: ?int, kind: 'module'|'feature'}|null Inline entry line, like in the catalog. */
+    public ?array $draft = null;
 
-    public string $newKind = 'feature';
-
-    public string $newName = '';
-
-    public string $newParentId = '';
+    public string $draftName = '';
 
     public bool $showInitialize = false;
 
@@ -153,44 +156,136 @@ class Scope extends Component
         $this->dispatch('notify', message: "{$count} élément(s) rattaché(s).");
     }
 
-    public function createItem(CreateCatalogItemInVersion $createCatalogItemInVersion): void
-    {
-        $this->validate([
-            'newKind' => ['required', Rule::in(['module', 'feature'])],
-            'newName' => ['required', 'string', 'max:255'],
-            'newParentId' => [Rule::requiredIf($this->newKind === 'feature'), 'nullable', 'integer', Rule::exists('modules', 'id')],
-        ], [], ['newKind' => 'type', 'newName' => 'nom', 'newParentId' => 'module parent']);
+    // Inline entry (same keys as the catalog) ------------------------------------------------
 
-        /** @var 'module'|'feature' $kind */
-        $kind = $this->newKind;
+    public function startDraft(?int $parentId, string $kind = 'module'): void
+    {
+        $this->draft = ['parent_id' => $parentId, 'kind' => $parentId !== null && $kind === 'feature' ? 'feature' : 'module'];
+        $this->draftName = '';
+        $this->resetValidation('draftName');
+
+        if ($parentId !== null) {
+            $this->dispatch('scope-open-module', id: $parentId);
+        }
+    }
+
+    /**
+     * Enter: creates the item in the shared catalog, attaches it to this version (EF-203) and
+     * keeps the line open for the next one.
+     */
+    public function saveDraft(CreateCatalogItemInVersion $createCatalogItemInVersion): void
+    {
+        if ($this->draft === null) {
+            return;
+        }
+
+        $this->validate(['draftName' => ['required', 'string', 'max:255']], [], ['draftName' => 'nom']);
+
         try {
-            $createCatalogItemInVersion->handle($this->version, $kind, $this->newName, $this->newParentId !== '' ? (int) $this->newParentId : null);
+            $createCatalogItemInVersion->handle($this->version, $this->draft['kind'], $this->draftName, $this->draft['parent_id']);
         } catch (DuplicateCatalogItem $exception) {
-            $this->addError('newName', $exception->getMessage());
+            $this->addError('draftName', $exception->getMessage());
 
             return;
         }
 
-        $this->reset('newName');
-        $this->dispatch('notify', message: 'Élément créé dans le catalogue et rattaché à cette version.');
+        $this->draftName = '';
     }
 
     /**
-     * The typed name already exists in the catalog: attach that item (and its ancestors, RG-04)
-     * instead of creating a duplicate.
+     * Tab: the next item goes under the last module of this version just above the entry line.
      */
-    public function attachExisting(string $key, AttachCatalogItems $attachCatalogItems): void
+    public function indentDraft(): void
+    {
+        if ($this->draft === null) {
+            return;
+        }
+
+        $tree = CatalogTree::load();
+        $attached = $this->implementations()->pluck('module_id')->filter()->all();
+        $siblings = $this->draft['parent_id'] === null ? $tree->rootModuleIds() : $tree->childModuleIds($this->draft['parent_id']);
+        $visible = array_values(array_filter($siblings, fn (int $id): bool => in_array($id, $attached, true)));
+
+        if ($visible !== []) {
+            $this->startDraft(end($visible), $this->draft['kind']);
+        }
+    }
+
+    /**
+     * Shift+Tab: the next item goes one level up.
+     */
+    public function outdentDraft(): void
+    {
+        if ($this->draft === null || $this->draft['parent_id'] === null) {
+            return;
+        }
+
+        $this->startDraft(CatalogTree::load()->modules[$this->draft['parent_id']]['parent_id'] ?? null, $this->draft['kind']);
+    }
+
+    public function setDraftKind(string $kind): void
+    {
+        if ($this->draft !== null && $this->draft['parent_id'] !== null) {
+            $this->draft['kind'] = $kind === 'feature' ? 'feature' : 'module';
+        }
+    }
+
+    public function cancelDraft(): void
+    {
+        $this->draft = null;
+        $this->draftName = '';
+        $this->resetValidation('draftName');
+    }
+
+    /**
+     * The typed name already exists in the catalog (RG-15): reuse it rather than create a duplicate.
+     * $mode comes from the page: "attach", "move" or "link".
+     */
+    public function reuseExisting(string $key, string $mode, ReuseCatalogItemInVersion $reuseItem): void
     {
         [$type, $id] = array_pad(explode(':', $key, 2), 2, '0');
-        $id = (int) $id;
+        $item = $type === 'module' ? Module::query()->find((int) $id) : Feature::query()->find((int) $id);
+        $mode = match ($mode) {
+            'move' => 'move',
+            'link' => 'link',
+            default => 'attach',
+        };
 
-        $count = $type === 'module'
-            ? $attachCatalogItems->handle([$this->version->id], [$id], [], $this->attachWithDescendants)
-            : $attachCatalogItems->handle([$this->version->id], [], [$id]);
+        if ($item === null) {
+            return;
+        }
 
-        $this->reset('newName');
-        $this->resetValidation('newName');
-        $this->dispatch('notify', message: "Élément existant rattaché ({$count} rattachement(s)).");
+        try {
+            $reuseItem->handle($this->version, $item, $this->draft['parent_id'] ?? null, $mode);
+        } catch (DomainException $exception) {
+            $this->addError('draftName', $exception->getMessage());
+
+            return;
+        }
+
+        $this->draftName = '';
+        $this->resetValidation('draftName');
+        $this->dispatch('notify', message: match ($mode) {
+            'move' => "« {$item->name} » a été déplacé ici dans le catalogue et rattaché.",
+            'link' => "« {$item->name} » apparaît aussi ici et est rattaché.",
+            default => "« {$item->name} » est rattaché à cette version.",
+        });
+    }
+
+    /**
+     * Drag and drop in the tree: moves the item in the shared catalog (RG-02).
+     */
+    public function move(string $group, int $id, ?int $parentId, int $position, MoveItemInVersionScope $moveItem): void
+    {
+        try {
+            $moveItem->handle($this->version, $group === 'features' ? 'feature' : 'module', $id, $parentId, $position);
+        } catch (DomainException $exception) {
+            $this->dispatch('notify', message: $exception->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('notify', message: 'Déplacé dans le catalogue : toutes les versions voient la nouvelle organisation.');
     }
 
     public function initialize(InitializeVersionFrom $initializeVersionFrom): void
@@ -227,11 +322,11 @@ class Scope extends Component
         $byModule = $implementations->whereNotNull('module_id')->keyBy('module_id');
         $byFeature = $implementations->whereNotNull('feature_id')->keyBy('feature_id');
 
-        $suggestions = $this->showCreate ? app(CatalogSearch::class)->search($this->newName, 6) : [];
+        $suggestions = $this->draft !== null && trim($this->draftName) !== '' ? app(CatalogSearch::class)->search($this->draftName, 6) : [];
 
         return view('livewire.versions.scope', [
             'tree' => $tree,
-            'newSuggestions' => array_map(fn (array $suggestion): array => [
+            'draftSuggestions' => array_map(fn (array $suggestion): array => [
                 ...$suggestion,
                 'attached' => $suggestion['type'] === 'module' ? $byModule->has($suggestion['id']) : $byFeature->has($suggestion['id']),
             ], $suggestions),
@@ -245,7 +340,6 @@ class Scope extends Component
                 ? $implementations->where('status', ImplementationStatus::from($this->statusFilter))->values()
                 : null,
             'statuses' => collect(ImplementationStatus::cases())->mapWithKeys(fn (ImplementationStatus $status): array => [$status->value => $status->label()]),
-            'attachedModuleOptions' => $this->moduleOptions($tree, $byModule->keys()->all()),
             'sourceVersions' => Version::query()->whereNull('archived_at')->whereKeyNot($this->version->id)
                 ->with('product')->get()
                 ->sortBy(fn (Version $version): string => ($version->product_id === $this->version->product_id ? '0' : '1').$version->product->name.' '.$version->name)
@@ -275,28 +369,6 @@ class Scope extends Component
                 'issues' => fn ($query) => $query->whereNull('issues.archived_at'),
             ])
             ->get();
-    }
-
-    /**
-     * Attached modules, indented by depth, for the "parent" select of the creation form.
-     *
-     * @param  list<int>  $attachedModuleIds
-     * @return array<int, string>
-     */
-    private function moduleOptions(CatalogTree $tree, array $attachedModuleIds): array
-    {
-        $options = [];
-        $walk = function (array $moduleIds, int $depth) use (&$walk, &$options, $tree, $attachedModuleIds): void {
-            foreach ($moduleIds as $moduleId) {
-                if (in_array($moduleId, $attachedModuleIds, true)) {
-                    $options[$moduleId] = str_repeat('— ', $depth).$tree->modules[$moduleId]['name'];
-                    $walk($tree->childModuleIds($moduleId), $depth + 1);
-                }
-            }
-        };
-        $walk($tree->rootModuleIds(), 0);
-
-        return $options;
     }
 
     /**

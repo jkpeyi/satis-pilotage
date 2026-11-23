@@ -6,7 +6,6 @@
         </x-slot:breadcrumbs>
         <x-slot:actions>
             <x-ui.button variant="secondary" wire:click="$set('showInitialize', true)">Initialiser depuis une version</x-ui.button>
-            <x-ui.button variant="secondary" wire:click="$set('showCreate', true)">Créer un élément ici</x-ui.button>
             <x-ui.button wire:click="openAttach">Rattacher des éléments</x-ui.button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -80,15 +79,23 @@
                 @endforelse
             </ul>
         @else
-            <div class="flex justify-end gap-3 px-3 pt-2 text-xs">
-                <button type="button" x-on:click="$dispatch('scope-tree', true)" class="text-slate-500 hover:text-slate-900">Tout déplier</button>
-                <button type="button" x-on:click="$dispatch('scope-tree', false)" class="text-slate-500 hover:text-slate-900">Tout replier</button>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-3 pt-2 text-xs">
+                <p class="text-slate-500">Survolez un module pour y ajouter un sous-module ou une fonctionnalité ; glissez ⋮⋮ pour réorganiser. Créations et déplacements s’appliquent au catalogue commun : toutes les versions les voient.</p>
+                <span class="flex gap-3">
+                    <button type="button" x-on:click="$dispatch('scope-tree', true)" class="text-slate-500 hover:text-slate-900">Tout déplier</button>
+                    <button type="button" x-on:click="$dispatch('scope-tree', false)" class="text-slate-500 hover:text-slate-900">Tout replier</button>
+                </span>
             </div>
-            <ul>
+            <ul x-sortable="{ group: 'modules', parent: null }" data-parent="">
                 @foreach ($tree->rootModuleIds() as $moduleId)
                     @include('livewire.versions.partials.scope-module', ['moduleId' => $moduleId, 'depth' => 0])
                 @endforeach
             </ul>
+            @if ($draft !== null && $draft['parent_id'] === null)
+                <ul>@include('livewire.versions.partials.scope-draft', ['depth' => 0])</ul>
+            @else
+                <button type="button" wire:click="startDraft(null, 'module')" class="mx-3 my-2 text-sm font-medium text-brand-700 hover:underline">+ Ajouter un module</button>
+            @endif
         @endif
     </div>
 
@@ -113,44 +120,6 @@
             <div class="flex gap-2">
                 <x-ui.button type="submit">Rattacher</x-ui.button>
                 <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>
-            </div>
-        </form>
-    </x-ui.modal>
-
-    <x-ui.modal wire:model="showCreate" title="Créer un élément dans le catalogue">
-        <form wire:submit="createItem" class="space-y-4">
-            <p class="text-sm text-slate-500">L'élément est ajouté au catalogue commun et rattaché à cette version.</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.select label="Type" wire:model.live="newKind" :options="['feature' => 'Fonctionnalité', 'module' => 'Module ou sous-module']" />
-                <x-ui.select label="Dans le module" wire:model="newParentId" :options="$attachedModuleOptions"
-                    :placeholder="$newKind === 'module' ? 'Aucun (module racine)' : 'Choisir…'" />
-            </div>
-            <x-ui.input label="Nom" wire:model.live.debounce.250ms="newName" required hint="Les noms sont uniques dans tout le catalogue : rattachez l'élément existant s'il apparaît ci-dessous." />
-            @if ($newSuggestions !== [])
-                <div class="rounded-md border border-slate-200 text-sm">
-                    <p class="border-b border-slate-100 px-3 py-1.5 text-xs text-slate-500">Déjà dans le catalogue :</p>
-                    <ul class="divide-y divide-slate-100">
-                        @foreach ($newSuggestions as $suggestion)
-                            <li class="flex items-center gap-2 px-3 py-1.5" wire:key="new-suggestion-{{ $suggestion['key'] }}">
-                                <span class="min-w-0 flex-1">
-                                    <span @class(['font-semibold text-slate-900' => $suggestion['exact'], 'text-slate-700' => ! $suggestion['exact']])>{{ $suggestion['name'] }}</span>
-                                    <span class="block truncate text-xs text-slate-500" title="{{ $suggestion['path'] }}">{{ $suggestion['type'] === 'feature' ? 'Fonctionnalité' : 'Module' }} · {{ $suggestion['path'] }}</span>
-                                </span>
-                                @if ($suggestion['archived'])
-                                    <x-ui.badge>Archivé dans le catalogue</x-ui.badge>
-                                @elseif ($suggestion['attached'])
-                                    <x-ui.badge color="green">Déjà rattaché</x-ui.badge>
-                                @else
-                                    <x-ui.button size="sm" variant="secondary" wire:click="attachExisting('{{ $suggestion['key'] }}')">Rattacher</x-ui.button>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-            <div class="flex gap-2">
-                <x-ui.button type="submit">Créer et rattacher</x-ui.button>
-                <x-ui.button variant="secondary" x-on:click="open = false">Fermer</x-ui.button>
             </div>
         </form>
     </x-ui.modal>
