@@ -1,8 +1,6 @@
 <?php
 
-use App\Actions\Referential\SaveEnvironment;
 use App\Actions\Referential\SaveRepository;
-use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
 use App\Models\Repository;
 use App\Models\Version;
@@ -33,22 +31,3 @@ it('derives the repository path from its full GitLab URL', function (string $url
     ['https://gitlab.example.test/satis/macro-api/-/tree/main', 'satis/macro-api'],
     ['https://gitlab.example.test/', null],
 ]);
-
-it('refuses an environment linked to a repository of another version', function () {
-    $version = Version::factory()->create();
-    $foreignRepository = Repository::factory()->create();
-
-    app(SaveEnvironment::class)->handle([
-        'version_id' => $version->id,
-        'repository_id' => $foreignRepository->id,
-        'type' => EnvironmentType::Production,
-        'name' => 'Production',
-        'url' => null,
-        'deployed_ref' => null,
-        'database_engine' => null,
-        'database_version' => null,
-        'php_version' => null,
-        'server' => null,
-        'notes' => null,
-    ]);
-})->throws(DomainException::class);

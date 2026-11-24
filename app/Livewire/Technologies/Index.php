@@ -25,7 +25,7 @@ class Index extends Component
     public bool $onlyMissing = false;
 
     /**
-     * Brings in the technologies already entered on repositories, components and environments.
+     * Brings in the technologies already entered on repositories and components.
      */
     public function sync(SyncTechnologiesFromEstate $syncTechnologies): void
     {

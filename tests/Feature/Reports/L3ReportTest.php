@@ -5,7 +5,6 @@ use App\Enums\ComponentType;
 use App\Enums\IntegrationProtocol;
 use App\Enums\VersionStatus;
 use App\Models\Component;
-use App\Models\Environment;
 use App\Models\Integration;
 use App\Models\Product;
 use App\Models\ReportGeneration;
@@ -24,7 +23,7 @@ beforeEach(function () {
     $this->repository = Repository::factory()->for($this->version)->create([
         'path' => 'satis/api', 'web_url' => 'https://gitlab.example.test/satis/api', 'stack' => ['php' => '7.4.33', 'laravel' => '12.1.0'],
     ]);
-    Environment::factory()->for($this->version)->create(['name' => 'Production', 'database_engine' => 'MySQL', 'database_version' => '5.7']);
+    Component::factory()->for($this->version)->create(['name' => 'Base principale', 'type' => ComponentType::Database, 'technology' => 'MySQL', 'technology_version' => '5.7']);
     Technology::factory()->create(['component' => 'php', 'cycle' => '7.4', 'end_of_support' => '2022-11-28']);
     Technology::factory()->create(['component' => 'laravel', 'cycle' => '12', 'end_of_support' => '2099-02-24']);
     Technology::factory()->create(['component' => 'mysql', 'cycle' => '5.7', 'end_of_support' => '2023-10-31']);
@@ -44,7 +43,7 @@ it('maps components, integrations, databases and dependencies, without the futur
     $generation = ($this->generate)();
     $sections = json_decode($generation->snapshot, true)['sections'];
 
-    expect(array_column($sections['components.table']['rows'], 'name'))->toBe(['API métier', 'Front'])
+    expect(array_column($sections['components.table']['rows'], 'name'))->toBe(['API métier', 'Front', 'Base principale'])
         ->and($sections['components.table']['rows'][0])->toMatchArray([
             'component_id' => $this->api->displayCode(),
             'application_id' => $this->version->displayCode(),
@@ -69,11 +68,11 @@ it('maps components, integrations, databases and dependencies, without the futur
     $risks = collect($sections['architecture.risks']['blocks'])->pluck('text')->implode("\n");
     expect($risks)
         ->toContain('satis/api : php 7.4.33 — hors support')
-        ->toContain('Production : MySQL 5.7 — hors support')
+        ->toContain('Base principale : MySQL 5.7 — hors support')
         ->not->toContain('laravel 12.1.0')
         ->toContain('1 intégration sans preuve')
         ->and(collect($sections['architecture.overview']['blocks'])->pluck('text')->implode("\n"))
-        ->toContain('1 application, 1 dépôt, 2 composants et 2 intégrations')
+        ->toContain('1 application, 1 dépôt, 3 composants et 2 intégrations')
         ->toContain('Systèmes externes : Centrale des risques.')
         ->not->toContain('Portail SaaS');
 });

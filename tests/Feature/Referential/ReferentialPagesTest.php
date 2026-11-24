@@ -199,20 +199,6 @@ it('adds a repository with its stack from the version page', function () {
         ->assertHasErrors(['repositoryForm.web_url' => 'required']);
 });
 
-it('adds an environment linked to a repository of the version', function () {
-    $repository = Repository::factory()->create();
-
-    Livewire::test(Versions\Show::class, ['version' => $repository->version])
-        ->call('createEnvironment')
-        ->set('environmentForm.name', 'Production Abidjan')
-        ->set('environmentForm.repository_id', (string) $repository->id)
-        ->set('environmentForm.database_engine', 'Oracle')
-        ->call('saveEnvironment')
-        ->assertHasNoErrors();
-
-    expect($repository->version->environments()->sole()->repository_id)->toBe($repository->id);
-});
-
 it('creates a technology cycle and rejects a duplicate', function () {
     Livewire::test(Technologies\Index::class)
         ->call('create')

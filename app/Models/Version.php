@@ -80,14 +80,6 @@ class Version extends Model
     }
 
     /**
-     * @return HasMany<Environment, $this>
-     */
-    public function environments(): HasMany
-    {
-        return $this->hasMany(Environment::class);
-    }
-
-    /**
      * @return HasMany<Component, $this>
      */
     public function components(): HasMany

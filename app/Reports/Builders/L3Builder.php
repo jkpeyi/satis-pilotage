@@ -41,7 +41,6 @@ final class L3Builder implements ReportBuilder
             ->when($customer !== null, fn ($query) => $query->where('customer_id', $customer?->id))
             ->with([
                 'repositories' => fn ($query) => $query->active()->orderBy('path'),
-                'environments' => fn ($query) => $query->active()->orderBy('type')->orderBy('name'),
                 'components' => fn ($query) => $query->active()->with('repository')->orderBy('type')->orderBy('name'),
             ])
             ->orderBy('name')->orderBy('id')
@@ -169,7 +168,7 @@ final class L3Builder implements ReportBuilder
     }
 
     /**
-     * Engines of the environments, then database components, with their support status.
+     * Database components of each application, with their support status.
      *
      * @param  Collection<int, Version>  $versions
      */
@@ -183,16 +182,6 @@ final class L3Builder implements ReportBuilder
             ->column('support', 'Support', required: false);
 
         foreach ($versions as $version) {
-            foreach ($version->environments as $environment) {
-                $table->row([
-                    'application_id' => $version->displayCode(),
-                    'source' => sprintf('%s · %s (%s)', $environment->displayCode(), $environment->name, $environment->type->label()),
-                    'database_engine' => $environment->database_engine,
-                    'database_version' => $environment->database_version,
-                    'support' => $this->support($environment->database_engine, $environment->database_version),
-                ]);
-            }
-
             foreach ($version->components->filter(fn (Component $component): bool => $component->type === ComponentType::Database) as $component) {
                 $table->row([
                     'application_id' => $version->displayCode(),
@@ -260,9 +249,6 @@ final class L3Builder implements ReportBuilder
             }
             foreach ($version->components as $component) {
                 $note($version->displayCode().' · '.$component->name, $component->technology, $component->technology_version);
-            }
-            foreach ($version->environments as $environment) {
-                $note($version->displayCode().' · '.$environment->name, $environment->database_engine, $environment->database_version);
             }
         }
 

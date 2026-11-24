@@ -2,15 +2,12 @@
 
 use App\Actions\Architecture\SaveComponent;
 use App\Actions\Referential\RegisterTechnologies;
-use App\Actions\Referential\SaveEnvironment;
 use App\Actions\Referential\SaveRepository;
 use App\Enums\ComponentType;
-use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
 use App\Enums\VerificationStatus;
 use App\Livewire\Technologies\Index as TechnologiesPage;
 use App\Models\Component;
-use App\Models\Environment;
 use App\Models\Repository;
 use App\Models\Technology;
 use App\Models\User;
@@ -53,25 +50,25 @@ it('registers the stack of a repository when it is saved, without a support date
         ->and(Technology::query()->whereNotNull('end_of_support')->count())->toBe(0);
 });
 
-it('registers the technology of a component and the engines of an environment', function () {
+it('registers the technology of components, database engines included', function () {
     app(SaveComponent::class)->handle([
         'version_id' => $this->version->id, 'repository_id' => null, 'name' => 'Front', 'type' => ComponentType::Web,
         'technology' => 'React', 'technology_version' => '17.0.2', 'description' => null, 'evidence_url' => null,
         'verification_status' => VerificationStatus::ToVerify,
     ]);
-    app(SaveEnvironment::class)->handle([
-        'version_id' => $this->version->id, 'repository_id' => null, 'type' => EnvironmentType::Production, 'name' => 'Production',
-        'url' => null, 'deployed_ref' => null, 'database_engine' => 'MySQL', 'database_version' => '5.7.44',
-        'php_version' => '7.4.33', 'server' => null, 'notes' => null,
+    app(SaveComponent::class)->handle([
+        'version_id' => $this->version->id, 'repository_id' => null, 'name' => 'Base principale', 'type' => ComponentType::Database,
+        'technology' => 'MySQL', 'technology_version' => '5.7.44', 'description' => null, 'evidence_url' => null,
+        'verification_status' => VerificationStatus::ToVerify,
     ]);
 
-    expect(($this->cycles)())->toBe(['mysql 5.7', 'php 7.4', 'react 17']);
+    expect(($this->cycles)())->toBe(['mysql 5.7', 'react 17']);
 });
 
 it('brings in the technologies entered before, from the technologies page', function () {
     Repository::factory()->for($this->version)->create(['stack' => ['symfony' => '5.4.21']]);
     Component::factory()->for($this->version)->create(['technology' => 'Angular', 'technology_version' => '12.2.0']);
-    Environment::factory()->for($this->version)->create(['database_engine' => 'Oracle', 'database_version' => '19c', 'php_version' => null]);
+    Component::factory()->for($this->version)->create(['type' => ComponentType::Database, 'technology' => 'Oracle', 'technology_version' => '19c']);
 
     Livewire::test(TechnologiesPage::class)
         ->call('sync')
