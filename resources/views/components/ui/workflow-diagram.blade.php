@@ -1,6 +1,10 @@
-@props(['layout'])
+@props(['layout', 'colors' => []])
 
-{{-- Workflow diagram (RG-17) from WorkflowGraph::layout(): actions in boxes, decisions in diamonds, ends in pills. --}}
+{{-- Workflow diagram (RG-17) from WorkflowGraph::layout(): actions in boxes, decisions in diamonds, ends in pills.
+     colors (step id => green, amber, red, gray) tints the steps by their coverage in a version. --}}
+@php
+    $palette = ['green' => ['#ecfdf5', '#059669'], 'amber' => ['#fffbeb', '#d97706'], 'red' => ['#fef2f2', '#dc2626'], 'gray' => ['#f8fafc', '#94a3b8']];
+@endphp
 @if ($layout['nodes'] !== [])
     <div {{ $attributes->class('overflow-x-auto') }}>
         <svg xmlns="http://www.w3.org/2000/svg" width="{{ $layout['width'] }}" height="{{ $layout['height'] }}"
@@ -24,6 +28,7 @@
                     $cx = $node['x'] + $node['w'] / 2;
                     $cy = $node['y'] + $node['h'] / 2;
                     $firstLine = $cy - (count($node['lines']) - 1) * 7;
+                    $tint = $palette[$colors[$node['id']] ?? ''] ?? null;
                 @endphp
                 <g>
                     @if ($node['kind'] === 'decision')
@@ -34,7 +39,8 @@
                             fill="#f1f5f9" stroke="#334155" stroke-width="2" />
                     @else
                         <rect x="{{ $node['x'] }}" y="{{ $node['y'] }}" width="{{ $node['w'] }}" height="{{ $node['h'] }}" rx="6"
-                            fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+                            fill="{{ $tint[0] ?? '#ffffff' }}" stroke="{{ $tint[1] ?? '#94a3b8' }}" stroke-width="{{ $tint ? 2.5 : 1.5 }}"
+                            @if (($colors[$node['id']] ?? '') === 'gray') stroke-dasharray="4 3" @endif />
                     @endif
                     @foreach ($node['lines'] as $index => $line)
                         <text x="{{ $cx }}" y="{{ $firstLine + $index * 14 + 4 }}" text-anchor="middle" font-size="12" fill="#0f172a">{{ $line }}</text>
