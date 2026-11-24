@@ -29,8 +29,73 @@
                     @endforeach
                 </ul>
             @endif
-            <x-ui.workflow-diagram :layout="$diagram" />
+            @if ($coverage->versions->isNotEmpty())
+                <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                    <label for="coverage-version" class="text-slate-600">Colorer selon la version</label>
+                    <select id="coverage-version" wire:model.live="coverageVersion" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm">
+                        <option value="">Aucune</option>
+                        @foreach ($coverage->versions as $version) <option value="{{ $version->id }}">{{ $version->name }}</option> @endforeach
+                    </select>
+                    @if ($nodeColors !== [])
+                        <span class="flex flex-wrap gap-3 text-xs text-slate-600">
+                            <span><span class="inline-block h-2.5 w-2.5 rounded-sm border-2 border-emerald-600 bg-emerald-50"></span> opérationnelle</span>
+                            <span><span class="inline-block h-2.5 w-2.5 rounded-sm border-2 border-amber-600 bg-amber-50"></span> partielle, non testée ou inconnue</span>
+                            <span><span class="inline-block h-2.5 w-2.5 rounded-sm border-2 border-red-600 bg-red-50"></span> non rattachée, absente ou défaillante</span>
+                            <span><span class="inline-block h-2.5 w-2.5 rounded-sm border-2 border-dashed border-slate-400"></span> fonctionnalité à préciser</span>
+                        </span>
+                    @endif
+                </div>
+            @endif
+            <x-ui.workflow-diagram :layout="$diagram" :colors="$nodeColors" />
             <p class="mt-3 text-xs text-slate-500">Rectangle : action · losange : décision (si / sinon) · pastille : fin. Une action sans sortie passe à l'étape suivante ; les boucles sont en pointillé.</p>
+        </x-ui.card>
+    @endif
+
+    @if ($coverage->steps->isNotEmpty() && $coverage->versions->isNotEmpty())
+        <x-ui.card title="Couverture par version" class="mb-6">
+            <p class="mb-3 text-xs text-slate-500">Chaque étape prend, dans chaque version, l’état de la fonctionnalité qui la réalise (périmètre fonctionnel de la version). Rien n’est saisi ici : le workflow reste le processus standard du produit.</p>
+            <div class="overflow-x-auto">
+                <x-ui.table>
+                    <x-slot:head>
+                        <th>Étape</th>
+                        @foreach ($coverage->versions as $version)
+                            <th class="min-w-36">{{ $version->name }}@if ($version->status === \App\Enums\VersionStatus::Future) <span class="font-normal normal-case text-slate-400">(perspective)</span>@endif</th>
+                        @endforeach
+                    </x-slot:head>
+                    @foreach ($coverage->steps as $step)
+                        <tr wire:key="coverage-{{ $step->id }}">
+                            <td class="text-sm">
+                                <span class="tabular-nums text-slate-500">{{ $step->position }}.</span> {{ $step->name }}
+                                @if ($step->feature) <div class="text-xs text-slate-500">{{ $step->feature->name }}</div> @endif
+                            </td>
+                            @foreach ($coverage->versions as $version)
+                                @php $cell = $coverage->cell($step, $version); @endphp
+                                <td>
+                                    @if ($cell instanceof \App\Enums\ImplementationStatus)
+                                        <x-ui.badge :color="$cell->color()">{{ $cell->label() }}</x-ui.badge>
+                                    @elseif ($cell === \App\Queries\WorkflowCoverage::NOT_ATTACHED)
+                                        <x-ui.badge color="red">Non rattachée</x-ui.badge>
+                                    @else
+                                        <span class="text-xs text-slate-400">{{ \App\Queries\WorkflowCoverage::label($cell) }}</span>
+                                    @endif
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                    <tr class="bg-slate-50">
+                        <td class="text-xs font-semibold text-slate-700">Synthèse</td>
+                        @foreach ($coverage->versions as $version)
+                            @php $summary = $coverage->summary($version); @endphp
+                            <td class="text-xs text-slate-700">
+                                {{ $summary['operational'] }} / {{ $summary['steps'] }} opérationnelle{{ $summary['operational'] > 1 ? 's' : '' }}
+                                @if ($summary['blocking'] > 0) <div class="font-medium text-red-700">{{ $summary['blocking'] }} bloquante{{ $summary['blocking'] > 1 ? 's' : '' }}</div> @endif
+                                @if ($summary['undefined'] > 0) <div class="text-slate-500">{{ $summary['undefined'] }} à préciser</div> @endif
+                            </td>
+                        @endforeach
+                    </tr>
+                </x-ui.table>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Bloquante : la fonctionnalité n’est pas rattachée à la version, ou y est absente ou défaillante ; le processus ne peut pas se dérouler jusqu’au bout.</p>
         </x-ui.card>
     @endif
 
@@ -126,7 +191,45 @@
                 <x-ui.input label="Étape" wire:model="stepForm.name" required :hint="$stepForm->kind === 'decision' ? 'Formulez la question, ex. Réclamation fondée ?' : 'Ex. Qualification de la réclamation'" />
                 <x-ui.input label="Acteur" wire:model="stepForm.actor" hint="Un rôle ou une équipe, jamais le nom d'une personne." />
             </div>
-            <x-ui.select label="Fonctionnalité qui réalise l'étape" wire:model.live="stepForm.feature_id" :options="$featureOptions" placeholder="À préciser" />
+            <x-ui.field label="Fonctionnalité qui réalise l'étape" for="feature-search" error="featureSearch">
+                @if ($chosenFeature)
+                    <div class="flex items-start justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                        <span>
+                            <span class="font-medium text-slate-900">{{ $chosenFeature['label'] }}</span>
+                            <span class="mt-1 block text-xs text-slate-500">{{ implode(' · ', $chosenFeature['versions']) }}</span>
+                        </span>
+                        <button type="button" wire:click="clearFeature" class="text-xs text-slate-500 hover:text-slate-900">Changer</button>
+                    </div>
+                @else
+                    <input id="feature-search" type="text" wire:model.live.debounce.250ms="featureSearch" placeholder="Rechercher dans le catalogue… (vide : à préciser)"
+                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30">
+                    @if (trim($featureSearch) !== '')
+                        <div class="mt-1 rounded-md border border-slate-200 bg-white text-sm shadow-sm">
+                            @foreach ($featureSuggestions as $suggestion)
+                                <button type="button" wire:click="chooseFeature({{ $suggestion['id'] }})" wire:key="feature-suggestion-{{ $suggestion['id'] }}"
+                                    class="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-1.5 text-left hover:bg-slate-50">
+                                    <span class="min-w-0 flex-1 truncate">
+                                        <span @class(['font-semibold text-slate-900' => $suggestion['exact'], 'text-slate-800' => ! $suggestion['exact']])>{{ $suggestion['name'] }}</span>
+                                        <span class="text-xs text-slate-400">· {{ $suggestion['path'] }}</span>
+                                    </span>
+                                    @if (! $suggestion['in_product']) <x-ui.badge>hors produit</x-ui.badge> @endif
+                                </button>
+                            @endforeach
+                            @if (! collect($featureSuggestions)->contains('exact', true))
+                                <div class="flex flex-wrap items-center gap-2 px-3 py-2">
+                                    <span class="text-xs text-slate-600">Créer « {{ $featureSearch }} » dans</span>
+                                    <select wire:model="newFeatureModuleId" aria-label="Module de la nouvelle fonctionnalité" class="min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs">
+                                        <option value="">Choisir le module…</option>
+                                        @foreach ($moduleOptions as $id => $label) <option value="{{ $id }}">{{ $label }}</option> @endforeach
+                                    </select>
+                                    <x-ui.button size="sm" variant="secondary" wire:click="createFeature">Créer</x-ui.button>
+                                </div>
+                                @error('newFeatureModuleId') <p class="px-3 pb-2 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @endif
+                        </div>
+                    @endif
+                @endif
+            </x-ui.field>
             <x-ui.textarea label="Description" wire:model="stepForm.description" rows="3" hint="Markdown accepté." />
 
             @if ($stepForm->kind === 'decision')
