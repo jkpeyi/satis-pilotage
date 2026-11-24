@@ -1,14 +1,13 @@
 <?php
 
-use App\Actions\Referential\SaveDeployment;
 use App\Actions\Reports\GenerateReport;
+use App\Enums\ComponentType;
 use App\Enums\RepositoryRole;
 use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
+use App\Models\Component;
 use App\Models\Customer;
-use App\Models\Environment;
 use App\Models\Product;
-use App\Models\Release;
 use App\Models\ReportGeneration;
 use App\Models\Repository;
 use App\Models\Technology;
@@ -46,13 +45,7 @@ beforeEach(function () {
         'web_url' => 'https://gitlab.example.test/satis/macro-alpha-api',
         'stack' => ['php' => '7.4.33'],
     ]);
-    $this->environment = Environment::factory()->for($this->version)->create([
-        'repository_id' => $this->repository->id,
-        'name' => 'Production Alpha',
-        'deployed_ref' => 'a1b2c3d4',
-        'database_engine' => 'MySQL',
-        'database_version' => '5.7',
-    ]);
+    Component::factory()->for($this->version)->create(['name' => 'Base principale', 'type' => ComponentType::Database, 'technology' => 'MySQL', 'technology_version' => '5.7']);
     Technology::factory()->create(['component' => 'php', 'cycle' => '7.4', 'end_of_support' => '2022-11-28']);
 
     $this->generate = fn (?int $customerId = null): ReportGeneration => app(GenerateReport::class)
@@ -82,8 +75,8 @@ it('generates the L1 Word document and its XLSX annex from the central data', fu
         ->toContain($this->customer->displayCode().' · Banque Alpha')
         ->toContain('satis/macro-alpha-api (php 7.4.33)')
         ->toContain('https://gitlab.example.test/satis/macro-alpha-api')
-        ->toContain('a1b2c3d4')
         ->toContain('MySQL 5.7')
+        ->toContain('Les environnements, releases et déploiements ne sont pas suivis dans l’application')
         ->toContain('php 7.4.33, hors support');
 });
 
@@ -94,37 +87,27 @@ it('shows missing data as "À confirmer" and lists it in the pending items', fun
     expect($text)
         ->toContain('À confirmer')
         ->toContain('Applications — Responsable technique : 1 valeur à confirmer')
-        ->toContain('Déploiements — Date de déploiement : 1 valeur à confirmer')
+        ->toContain('Environnements et déploiements : non suivis dans l’application')
         ->toContain('responsable technique non désigné')
-        ->toContain('aucun déploiement enregistré pour '.$this->environment->displayCode())
         ->toContain('Applications — Frontend : 1 valeur à confirmer')
         ->and($generation->missing_count)->toBeGreaterThan(0)
         ->and((float) $generation->completeness)->toBeLessThan(100.0);
 });
 
-it('reports the owner, the verification and the latest verified deployment of each application', function () {
+it('reports the owner and the verification of each application', function () {
     $this->actingAs($this->user);
     $this->version->update(['technical_owner_id' => $this->user->id, 'is_historical_pivot' => true]);
     $this->version->applyVerificationStatus(VerificationStatus::Verified);
     $this->version->save();
-    $release = Release::factory()->for($this->repository)->create(['name' => 'v2.3.0', 'commit_sha' => str_repeat('c', 40)]);
-    app(SaveDeployment::class)->handle([
-        'environment_id' => $this->environment->id, 'release_id' => $release->id, 'commit_sha' => null,
-        'deployed_at' => '2026-06-20 21:00', 'verification_status' => VerificationStatus::Verified, 'evidence' => null, 'notes' => null,
-    ]);
 
     $generation = ($this->generate)();
     $snapshot = json_decode($generation->snapshot, true);
     $application = $snapshot['sections']['applications.table']['rows'][0];
-    $deployment = $snapshot['sections']['deployments.table']['rows'][0];
 
     expect($application['technical_owner'])->toBe('Awa Koné')
         ->and($application['verification_status'])->toBe('Vérifié')
         ->and($application['comparison_role'])->toBe('Pivot historique')
-        ->and($deployment['release'])->toBe('v2.3.0')
-        ->and($deployment['deployed_commit'])->toBe(str_repeat('c', 40))
-        ->and($deployment['deployed_at'])->toBe('20/06/2026 21:00')
-        ->and($deployment['verification_status'])->toBe('Vérifié')
+        ->and($application['database_engine'])->toBe('MySQL 5.7')
         ->and(docxText(Storage::disk('local')->path($generation->docx_path)))
         ->toContain('Pivot historique (point de comparaison, pas une cible)')
         ->not->toContain('responsable technique non désigné');
@@ -192,7 +175,7 @@ it('caps long tables in the Word document and keeps every row in the XLSX annex'
     expect($text)->toContain('Extrait : 1 premières lignes sur 2');
 
     $spreadsheet = IOFactory::load(Storage::disk('local')->path($generation->xlsx_path));
-    expect($spreadsheet->getSheetNames())->toBe(['Contrôle', 'Applications', 'Déploiements'])
+    expect($spreadsheet->getSheetNames())->toBe(['Contrôle', 'Applications'])
         ->and($spreadsheet->getSheetByName('Applications')?->getHighestRow())->toBe(3)
         ->and($spreadsheet->getSheetByName('Contrôle')?->getCell('B2')->getFormattedValue())->toBe($generation->documentId());
 });

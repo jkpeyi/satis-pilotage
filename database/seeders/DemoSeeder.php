@@ -11,7 +11,6 @@ use App\Actions\Diagnostics\RetainFindingsInNewIssue;
 use App\Actions\Diagnostics\SaveDiagnosticCampaign;
 use App\Actions\Diagnostics\SaveTestRun;
 use App\Actions\Implementations\AttachCatalogItems;
-use App\Actions\Referential\SaveDeployment;
 use App\Actions\Referential\SetReferenceVersion;
 use App\Actions\Remediation\SaveRemediationAction;
 use App\Actions\Remediation\SaveWorkPackage;
@@ -25,7 +24,6 @@ use App\Enums\ComponentType;
 use App\Enums\Confidence;
 use App\Enums\CustomerType;
 use App\Enums\DecisionStatus;
-use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IntegrationProtocol;
 use App\Enums\IssueSeverity;
@@ -42,14 +40,12 @@ use App\Enums\WorkPackageStatus;
 use App\Models\BusinessRule;
 use App\Models\Component;
 use App\Models\Customer;
-use App\Models\Environment;
 use App\Models\Feature;
 use App\Models\Implementation;
 use App\Models\Integration;
 use App\Models\Issue;
 use App\Models\Module;
 use App\Models\Product;
-use App\Models\Release;
 use App\Models\Repository;
 use App\Models\StrategyOption;
 use App\Models\StrategyPhase;
@@ -65,7 +61,7 @@ use Illuminate\Database\Seeder;
  */
 class DemoSeeder extends Seeder
 {
-    public function run(CreateModule $createModule, CreateFeature $createFeature, AttachCatalogItems $attach, SetReferenceVersion $setReference, SaveDeployment $saveDeployment): void
+    public function run(CreateModule $createModule, CreateFeature $createFeature, AttachCatalogItems $attach, SetReferenceVersion $setReference): void
     {
         $macro = Product::query()->create(['code' => 'MACRO', 'name' => 'Satis Macro', 'description' => 'Solution de gestion pour la microfinance.']);
         Product::query()->create(['code' => 'PRO', 'name' => 'Satis Pro', 'description' => 'Solution pour les banques.']);
@@ -89,19 +85,6 @@ class DemoSeeder extends Seeder
             'version_id' => $versionA->id, 'path' => 'satis/macro-demo-a-front', 'web_url' => 'https://gitlab.example.com/satis/macro-demo-a-front', 'role' => RepositoryRole::Frontend,
             'production_branch' => 'main', 'active_branches' => ['main'], 'stack' => ['react' => '17.0.2', 'node' => '16.20.0'],
         ]);
-
-        $productionA = Environment::query()->create([
-            'version_id' => $versionA->id, 'repository_id' => $apiA->id, 'type' => EnvironmentType::Production, 'name' => 'Production',
-            'database_engine' => 'MySQL', 'database_version' => '5.7', 'php_version' => '8.1.27',
-        ]);
-        $testingA = Environment::query()->create([
-            'version_id' => $versionA->id, 'repository_id' => $apiA->id, 'type' => EnvironmentType::Testing, 'name' => 'Recette',
-            'database_engine' => 'MySQL', 'database_version' => '8.0', 'php_version' => '8.1.27',
-        ]);
-        $release23 = Release::query()->create(['repository_id' => $apiA->id, 'name' => 'v2.3.0', 'commit_sha' => '4f1c2e9a7b3d5f60812c3d4e5f6a7b8c9d0e1f2a', 'released_on' => '2026-06-15']);
-        $release24 = Release::query()->create(['repository_id' => $apiA->id, 'name' => 'v2.4.0', 'commit_sha' => '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b', 'released_on' => '2026-10-02']);
-        $saveDeployment->handle(['environment_id' => $productionA->id, 'release_id' => $release23->id, 'commit_sha' => null, 'deployed_at' => '2026-06-20 21:00', 'verification_status' => VerificationStatus::Verified, 'evidence' => 'Contrôle de la version affichée sur le serveur de production', 'notes' => null]);
-        $saveDeployment->handle(['environment_id' => $testingA->id, 'release_id' => $release24->id, 'commit_sha' => null, 'deployed_at' => '2026-10-05 10:30', 'verification_status' => VerificationStatus::ToVerify, 'evidence' => null, 'notes' => null]);
 
         $this->seedArchitecture($versionA, $apiA, $frontA);
 

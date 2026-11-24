@@ -7,7 +7,6 @@ use App\Enums\IssueSeverity;
 use App\Models\DiagnosticCampaign;
 use App\Models\DiagnosticFinding;
 use App\Models\Issue;
-use App\Models\Release;
 use App\Models\TestRun;
 use App\Models\ToolRun;
 use App\Reports\Content\ReportContent;
@@ -77,14 +76,6 @@ final class L4Builder implements ReportBuilder
         ));
 
         $section->paragraph('Date d’analyse : '.($campaign->analyzed_on?->format('d/m/Y') ?? 'À confirmer').'.');
-
-        $releases = Release::query()->where('repository_id', $repository->id)->whereNotNull('commit_sha')
-            ->where('commit_sha', 'like', substr($campaign->commit_sha, 0, 7).'%')->with('deployments.environment')->get()
-            ->filter(fn (Release $release): bool => str_starts_with((string) $release->commit_sha, $campaign->commit_sha) || str_starts_with($campaign->commit_sha, (string) $release->commit_sha));
-        foreach ($releases as $release) {
-            $environments = $release->deployments->map(fn ($deployment): string => $deployment->environment->name.' ('.$deployment->deployed_at->format('d/m/Y').')')->unique()->implode(', ');
-            $section->paragraph(sprintf('Ce commit est celui de la release %s%s.', $release->name, $environments !== '' ? ', déployée sur '.$environments : ''));
-        }
 
         if ($campaign->objective !== null) {
             $section->paragraph('Objet : '.$this->plainText($campaign->objective, 2000));

@@ -66,14 +66,6 @@ class Repository extends Model
     }
 
     /**
-     * @return HasMany<Environment, $this>
-     */
-    public function environments(): HasMany
-    {
-        return $this->hasMany(Environment::class);
-    }
-
-    /**
      * @return HasMany<CodeSnippet, $this>
      */
     public function codeSnippets(): HasMany
@@ -87,13 +79,5 @@ class Repository extends Model
     public function diagnosticCampaigns(): HasMany
     {
         return $this->hasMany(DiagnosticCampaign::class);
-    }
-
-    /**
-     * @return HasMany<Release, $this>
-     */
-    public function releases(): HasMany
-    {
-        return $this->hasMany(Release::class)->orderByDesc('released_on')->orderByDesc('id');
     }
 }

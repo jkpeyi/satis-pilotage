@@ -1,5 +1,5 @@
 <div>
-    <x-ui.page-header title="Technologies" description="Dates de fin de support utilisées pour signaler les stacks obsolètes. Les technologies saisies sur les dépôts, composants et environnements s'ajoutent ici automatiquement.">
+    <x-ui.page-header title="Technologies" description="Dates de fin de support utilisées pour signaler les stacks obsolètes. Les technologies saisies sur les dépôts et les composants s'ajoutent ici automatiquement.">
         <x-slot:actions>
             <x-ui.button variant="secondary" wire:click="sync">Récupérer depuis les versions</x-ui.button>
             <x-ui.button wire:click="create">Ajouter un cycle</x-ui.button>
