@@ -13,7 +13,7 @@
                         <th>Type</th>
                         <th>Dépôt</th>
                         <th>Technologie</th>
-                        <th>Vérification</th>
+                        <th>Note</th>
                         <th></th>
                     </x-slot:head>
                     @foreach ($components as $item)
@@ -21,15 +21,12 @@
                             <td>
                                 <div class="font-mono text-xs text-slate-500">{{ $item->displayCode() }}</div>
                                 <div class="font-medium text-slate-900">{{ $item->name }}</div>
-                                @if ($item->evidence_url)
-                                    <a href="{{ $item->evidence_url }}" target="_blank" rel="noopener" class="text-xs text-brand-700 hover:underline">Preuve</a>
-                                @endif
                                 @if ($item->isArchived()) <x-ui.badge>Archivé</x-ui.badge> @endif
                             </td>
                             <td>{{ $item->type->label() }}</td>
                             <td class="font-mono text-xs">{{ $item->repository?->path ?? '—' }}</td>
                             <td>{{ $item->technologyLabel() ?? '—' }}</td>
-                            <td><x-ui.badge :color="$item->verification_status->color()">{{ $item->verification_status->label() }}</x-ui.badge></td>
+                            <td class="max-w-xs text-xs text-slate-600">{{ $item->description !== null ? \Illuminate\Support\Str::limit($item->description, 160) : '—' }}</td>
                             <td class="whitespace-nowrap text-right">
                                 @unless ($item->isArchived())
                                     <x-ui.button size="sm" variant="ghost" wire:click="createIntegration({{ $item->id }})">Intégration</x-ui.button>
@@ -110,9 +107,7 @@
                 <x-ui.input label="Technologie" wire:model="componentForm.technology" placeholder="Laravel, React, Oracle…" />
                 <x-ui.input label="Version" wire:model="componentForm.technology_version" class="font-mono" placeholder="9.52.16" />
             </div>
-            <x-ui.input label="Preuve" type="url" wire:model="componentForm.evidence_url" hint="Lien vers le fichier GitLab ou la documentation qui le montre." />
-            <x-ui.select label="Statut de vérification" wire:model="componentForm.verification_status" :options="$verificationStatuses" required />
-            <x-ui.textarea label="Description" wire:model="componentForm.description" rows="3" />
+            <x-ui.textarea label="Note" wire:model="componentForm.description" rows="3" hint="Markdown." />
             <div class="flex gap-2 pt-2">
                 <x-ui.button type="submit">Enregistrer</x-ui.button>
                 <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>

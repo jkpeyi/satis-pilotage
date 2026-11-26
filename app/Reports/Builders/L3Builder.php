@@ -15,6 +15,7 @@ use App\Reports\Content\TextSection;
 use App\Reports\Contracts\ReportBuilder;
 use App\Reports\ReportScope;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * L3 — Cartographie technique: components of each application, their integrations, the database
@@ -116,8 +117,7 @@ final class L3Builder implements ReportBuilder
             ->column('repository_id', 'Dépôt')
             ->column('technology', 'Technologie')
             ->column('version', 'Version')
-            ->column('evidence_url', 'Preuve')
-            ->column('verification_status', 'Vérification');
+            ->column('note', 'Note', required: false);
 
         foreach ($versions as $version) {
             foreach ($version->components as $component) {
@@ -129,8 +129,7 @@ final class L3Builder implements ReportBuilder
                     'repository_id' => $component->repository !== null ? $component->repository->displayCode().' · '.$component->repository->path : null,
                     'technology' => $component->technology,
                     'version' => $component->technology_version,
-                    'evidence_url' => $component->evidence_url,
-                    'verification_status' => $component->verification_status->label(),
+                    'note' => $component->description !== null ? Str::limit(trim((string) preg_replace('/\s+/u', ' ', $component->description)), 300, '…') : null,
                 ]);
             }
         }
@@ -253,8 +252,7 @@ final class L3Builder implements ReportBuilder
         }
 
         $components = $versions->flatMap(fn (Version $version): Collection => $version->components);
-        $toVerify = $components->filter(fn (Component $component): bool => $component->verification_status === VerificationStatus::ToVerify)->count()
-            + $integrations->filter(fn (Integration $integration): bool => $integration->verification_status === VerificationStatus::ToVerify)->count();
+        $toVerify = $integrations->filter(fn (Integration $integration): bool => $integration->verification_status === VerificationStatus::ToVerify)->count();
         $withoutEvidence = $integrations->filter(fn (Integration $integration): bool => blank($integration->evidence_url))->count();
         $withoutComponents = $versions->filter(fn (Version $version): bool => $version->components->isEmpty());
 
@@ -262,7 +260,7 @@ final class L3Builder implements ReportBuilder
         $section->paragraph('Risques relevés :');
         $risks = array_values(array_unique($obsolete));
         if ($toVerify > 0) {
-            $risks[] = sprintf('%d composant%s ou intégration%s encore à vérifier.', $toVerify, $this->plural($toVerify), $this->plural($toVerify));
+            $risks[] = sprintf('%d intégration%s encore à vérifier.', $toVerify, $this->plural($toVerify));
         }
         if ($withoutEvidence > 0) {
             $risks[] = sprintf('%d intégration%s sans preuve (contrat d’interface, code client ou documentation).', $withoutEvidence, $this->plural($withoutEvidence));

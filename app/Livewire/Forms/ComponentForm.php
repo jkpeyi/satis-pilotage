@@ -3,7 +3,6 @@
 namespace App\Livewire\Forms;
 
 use App\Enums\ComponentType;
-use App\Enums\VerificationStatus;
 use App\Models\Component;
 use App\Models\Version;
 use Illuminate\Validation\Rule;
@@ -27,10 +26,6 @@ class ComponentForm extends Form
 
     public string $description = '';
 
-    public string $evidence_url = '';
-
-    public string $verification_status = 'to_verify';
-
     public function forVersion(Version $version): void
     {
         $this->reset();
@@ -49,8 +44,6 @@ class ComponentForm extends Form
         $this->technology = (string) $component->technology;
         $this->technology_version = (string) $component->technology_version;
         $this->description = (string) $component->description;
-        $this->evidence_url = (string) $component->evidence_url;
-        $this->verification_status = $component->verification_status->value;
     }
 
     /**
@@ -65,13 +58,11 @@ class ComponentForm extends Form
             'technology' => ['nullable', 'string', 'max:255'],
             'technology_version' => ['nullable', 'string', 'max:64'],
             'description' => ['nullable', 'string', 'max:20000'],
-            'evidence_url' => ['nullable', 'url', 'max:1000'],
-            'verification_status' => ['required', Rule::enum(VerificationStatus::class)],
         ];
     }
 
     /**
-     * @return array{version_id: int, repository_id: ?int, name: string, type: ComponentType, technology: ?string, technology_version: ?string, description: ?string, evidence_url: ?string, verification_status: VerificationStatus}
+     * @return array{version_id: int, repository_id: ?int, name: string, type: ComponentType, technology: ?string, technology_version: ?string, description: ?string}
      */
     public function data(): array
     {
@@ -86,8 +77,6 @@ class ComponentForm extends Form
             'technology' => $nullable($this->technology),
             'technology_version' => $nullable($this->technology_version),
             'description' => $nullable($this->description),
-            'evidence_url' => $nullable($this->evidence_url),
-            'verification_status' => VerificationStatus::from($this->verification_status),
         ];
     }
 }

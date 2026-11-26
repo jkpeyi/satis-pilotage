@@ -51,7 +51,7 @@ it('maps components, integrations, databases and dependencies, without the futur
             'repository_id' => $this->repository->displayCode().' · satis/api',
             'technology' => 'Laravel',
             'version' => '12.1.0',
-            'verification_status' => 'À vérifier',
+            'note' => null,
         ])
         ->and($sections['components.table']['rows'][1]['repository_id'])->toBeNull()
         ->and(array_column($sections['integrations.table']['rows'], 'target'))->toBe([
