@@ -8,6 +8,7 @@ use App\Models\CodeSnippet;
 use App\Models\Component;
 use App\Models\Customer;
 use App\Models\DiagnosticCampaign;
+use App\Models\Environment;
 use App\Models\Integration;
 use App\Models\Issue;
 use App\Models\Product;
@@ -23,7 +24,7 @@ use App\Models\WorkPackage;
  */
 final class ArchiveRecord
 {
-    public function handle(Product|Customer|Repository|BusinessRule|Issue|CodeSnippet|Workflow|Component|Integration|DiagnosticCampaign|TestRun|AuditPeriod|WorkPackage|RemediationAction|RefactoringStrategy $record, bool $archive = true): void
+    public function handle(Product|Customer|Repository|Environment|BusinessRule|Issue|CodeSnippet|Workflow|Component|Integration|DiagnosticCampaign|TestRun|AuditPeriod|WorkPackage|RemediationAction|RefactoringStrategy $record, bool $archive = true): void
     {
         $archive ? $record->archive() : $record->unarchive();
     }

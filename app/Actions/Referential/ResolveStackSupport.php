@@ -42,7 +42,11 @@ final class ResolveStackSupport
         return $result;
     }
 
-    private function match(string $component, string $version): ?Technology
+    /**
+     * The cycle of the referential a version belongs to: the longest cycle it starts with
+     * (9.52.16 → 9), or null when the referential does not know it.
+     */
+    public function match(string $component, string $version): ?Technology
     {
         $clean = ltrim((string) preg_replace('/^[^0-9]*/', '', $version), 'v');
 

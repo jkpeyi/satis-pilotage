@@ -5,9 +5,12 @@ namespace App\Livewire\Versions;
 use App\Actions\Referential\ArchiveRecord;
 use App\Actions\Referential\ArchiveVersion;
 use App\Actions\Referential\ResolveStackSupport;
+use App\Actions\Referential\SaveEnvironment;
 use App\Actions\Referential\SaveRepository;
 use App\Actions\Referential\SetReferenceVersion;
+use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
+use App\Livewire\Forms\EnvironmentForm;
 use App\Livewire\Forms\RepositoryForm;
 use App\Models\Repository;
 use App\Models\Version;
@@ -16,7 +19,7 @@ use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
- * "Fiche version": details and repositories with their stack.
+ * "Fiche version": details, repositories with their stack, components and integrations, environments.
  */
 class Show extends Component
 {
@@ -24,7 +27,11 @@ class Show extends Component
 
     public RepositoryForm $repositoryForm;
 
+    public EnvironmentForm $environmentForm;
+
     public bool $showRepositoryForm = false;
+
+    public bool $showEnvironmentForm = false;
 
     public bool $showArchivedItems = false;
 
@@ -90,9 +97,34 @@ class Show extends Component
         $archiveRecord->handle($repository, ! $repository->isArchived());
     }
 
+    public function createEnvironment(): void
+    {
+        $this->environmentForm->forVersion($this->version->id);
+        $this->showEnvironmentForm = true;
+    }
+
+    public function editEnvironment(int $environmentId): void
+    {
+        $this->environmentForm->setEnvironment($this->version->environments()->findOrFail($environmentId));
+        $this->showEnvironmentForm = true;
+    }
+
+    public function saveEnvironment(SaveEnvironment $saveEnvironment): void
+    {
+        $saveEnvironment->handle($this->environmentForm->data(), $this->environmentForm->environment);
+        $this->showEnvironmentForm = false;
+        $this->dispatch('notify', message: 'Environnement enregistré.');
+    }
+
+    public function toggleEnvironmentArchive(int $environmentId, ArchiveRecord $archiveRecord): void
+    {
+        $environment = $this->version->environments()->findOrFail($environmentId);
+        $archiveRecord->handle($environment, ! $environment->isArchived());
+    }
+
     public function render(ResolveStackSupport $resolveStackSupport): View
     {
-        $this->version->load(['product', 'customer', 'technicalOwner', 'verifier', 'creator', 'editor']);
+        $this->version->load(['product', 'customer', 'technicalOwner', 'deputy', 'verifier', 'creator', 'editor']);
 
         $repositories = $this->version->repositories()
             ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
@@ -101,6 +133,11 @@ class Show extends Component
 
         return view('livewire.versions.show', [
             'repositories' => $repositories,
+            'environments' => $this->version->environments()
+                ->when(! $this->showArchivedItems, fn ($query) => $query->whereNull('archived_at'))
+                ->get(),
+            'environmentTypes' => collect(EnvironmentType::offered())->mapWithKeys(fn (EnvironmentType $type): array => [$type->value => $type->label()])
+                ->when($this->environmentForm->type === EnvironmentType::Other->value, fn ($options) => $options->put(EnvironmentType::Other->value, EnvironmentType::Other->label())),
             'stackSupport' => $repositories->mapWithKeys(fn (Repository $repository): array => [
                 $repository->id => $resolveStackSupport->handle($repository->stack ?? []),
             ]),

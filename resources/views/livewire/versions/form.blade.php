@@ -28,9 +28,10 @@
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-ui.select label="Responsable technique" wire:model="form.technical_owner_id" :options="$users" placeholder="À confirmer" />
-                    <x-ui.select label="Statut de vérification" wire:model="form.verification_status" :options="$verificationStatuses" required
-                        hint="Vérification des informations de cette fiche (dépôts, environnements, responsable)." />
+                    <x-ui.select label="Suppléant" wire:model="form.deputy_id" :options="$users" placeholder="À confirmer" hint="Remplace le responsable technique en son absence." />
                 </div>
+                <x-ui.select label="Statut de vérification" wire:model="form.verification_status" :options="$verificationStatuses" required
+                    hint="Vérification des informations de cette fiche (dépôts, environnements, responsables)." />
                 <label class="flex items-start gap-2 text-sm text-slate-700">
                     <input type="checkbox" wire:model="form.is_historical_pivot" class="mt-0.5 rounded border-slate-300 text-brand-700 focus:ring-brand-600">
                     <span>

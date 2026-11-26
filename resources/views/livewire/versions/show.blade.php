@@ -6,7 +6,6 @@
         </x-slot:breadcrumbs>
         <x-slot:actions>
             <x-ui.button :href="route('versions.scope', $version)">Périmètre fonctionnel</x-ui.button>
-            <x-ui.button variant="secondary" :href="route('versions.architecture', $version)">Architecture</x-ui.button>
             <x-ui.button variant="secondary" :href="route('versions.compare', ['a' => $version->id, 'b' => $version->product->reference_version_id !== $version->id ? $version->product->reference_version_id : null])">Comparer avec…</x-ui.button>
             @if (! $version->isReferenceOfItsProduct() && ! $version->isArchived())
                 <x-ui.button variant="secondary" wire:click="makeReference">Définir comme référence</x-ui.button>
@@ -34,6 +33,7 @@
         <span class="text-sm text-slate-600">
             Client : {{ $version->customer?->name ?? '—' }}
             · Responsable technique : {{ $version->technicalOwner?->name ?? 'à confirmer' }}
+            · Suppléant : {{ $version->deputy?->name ?? 'à confirmer' }}
         </span>
     </div>
 
@@ -106,6 +106,9 @@
             @endif
         </x-ui.card>
 
+        <livewire:versions.architecture :version="$version" :show-archived="$showArchivedItems" :key="'architecture-'.$version->id" />
+
+        @include('livewire.versions.partials.environments')
     </div>
 
     <x-ui.audit :record="$version" class="mt-6" />
@@ -133,6 +136,20 @@
                 <x-ui.button size="sm" variant="secondary" wire:click="addStackRow">Ajouter un composant</x-ui.button>
             </fieldset>
 
+            <div class="flex gap-2 pt-2">
+                <x-ui.button type="submit">Enregistrer</x-ui.button>
+                <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
+
+    <x-ui.modal wire:model="showEnvironmentForm" :title="$environmentForm->environment ? 'Modifier l’environnement' : 'Ajouter un environnement'">
+        <form wire:submit="saveEnvironment" class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.select label="Type" wire:model="environmentForm.type" :options="$environmentTypes" required />
+                <x-ui.input label="Nom" wire:model="environmentForm.name" required hint="Ex. Production Abidjan" />
+            </div>
+            <x-ui.textarea label="Remarques" wire:model="environmentForm.notes" rows="3" hint="Markdown. Jamais de mot de passe ni d’adresse sensible." />
             <div class="flex gap-2 pt-2">
                 <x-ui.button type="submit">Enregistrer</x-ui.button>
                 <x-ui.button variant="secondary" x-on:click="open = false">Annuler</x-ui.button>

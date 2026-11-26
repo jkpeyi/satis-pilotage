@@ -1,10 +1,12 @@
 <?php
 
 use App\Actions\Referential\SaveVersion;
+use App\Enums\EnvironmentType;
 use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
 use App\Livewire\Dashboard;
 use App\Livewire\Versions\Form;
+use App\Livewire\Versions\Show;
 use App\Models\Repository;
 use App\Models\User;
 use App\Models\Version;
@@ -69,13 +71,40 @@ it('edits the new version fields from the version form', function () {
         ->and($version->verification_status)->toBe(VerificationStatus::Unverifiable);
 });
 
-it('no longer offers environments, releases or deployments on the version page', function () {
-    $this->get(route('versions.show', $this->version))
-        ->assertOk()
-        ->assertSee('Dépôts')
-        ->assertDontSee('Environnements')
-        ->assertDontSee('Releases')
-        ->assertDontSee('Déploiements');
+it('records a deputy who differs from the technical owner', function () {
+    $deputy = User::factory()->create(['name' => 'Koffi Yao']);
+
+    Livewire::test(Form::class, ['version' => $this->version])
+        ->set('form.technical_owner_id', (string) $this->user->id)
+        ->set('form.deputy_id', (string) $this->user->id)
+        ->call('save')
+        ->assertHasErrors(['form.deputy_id' => 'different'])
+        ->set('form.deputy_id', (string) $deputy->id)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($this->version->refresh()->deputy_id)->toBe($deputy->id);
+    $this->get(route('versions.show', $this->version))->assertSee('Suppléant : Koffi Yao');
+    $this->get(route('versions.index'))->assertSee('Koffi Yao');
+});
+
+it('manages environments of a version by kind, name and notes, without releases or deployments', function () {
+    Livewire::test(Show::class, ['version' => $this->version])
+        ->call('createEnvironment')
+        ->assertViewHas('environmentTypes', fn ($types): bool => $types->all() === ['production' => 'Production', 'staging' => 'Pré-production', 'testing' => 'Test'])
+        ->set('environmentForm.type', 'staging')
+        ->set('environmentForm.name', 'Préprod Abidjan')
+        ->set('environmentForm.notes', 'Données anonymisées.')
+        ->call('saveEnvironment')
+        ->assertHasNoErrors()
+        ->assertSee('Préprod Abidjan')
+        ->call('createEnvironment')
+        ->set('environmentForm.name', 'Préprod Abidjan')
+        ->call('saveEnvironment')
+        ->assertHasErrors(['environmentForm.name' => 'unique']);
+
+    expect($this->version->environments()->sole())->type->toBe(EnvironmentType::Staging)->notes->toBe('Données anonymisées.');
+    $this->get(route('versions.show', $this->version))->assertDontSee('Releases')->assertDontSee('Déploiements');
 });
 
 it('does not count future or retired versions as versions in service', function () {

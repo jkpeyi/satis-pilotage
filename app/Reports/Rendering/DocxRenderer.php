@@ -95,6 +95,26 @@ final class DocxRenderer
         ));
     }
 
+    /**
+     * Turns the link markers into clickable HYPERLINK fields (no relationship needed in the template).
+     */
+    private function hyperlinks(string $xml, int $size): string
+    {
+        return (string) preg_replace_callback(
+            '#<w:r>(?:(?!</w:r>).)*?\[\[link:([A-Za-z0-9_-]+)\]\](?:(?!</w:r>).)*?</w:r>#s',
+            function (array $match) use ($size): string {
+                $url = (string) base64_decode(strtr($match[1], '-_', '+/'));
+                // The link shows the path of the address (e.g. the GitLab project), and opens the full URL.
+                $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+                $text = htmlspecialchars($path !== '' ? $path : $url, ENT_XML1 | ENT_QUOTES);
+                $escaped = htmlspecialchars($url, ENT_XML1 | ENT_QUOTES);
+
+                return '<w:fldSimple w:instr=" HYPERLINK &quot;'.$escaped.'&quot; "><w:r><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/><w:sz w:val="'.($size * 2).'"/></w:rPr><w:t xml:space="preserve">'.$text.'</w:t></w:r></w:fldSimple>';
+            },
+            $xml,
+        );
+    }
+
     private function table(ReportTemplateProcessor $processor, TableSection $section): string
     {
         $rows = $section->rows();
@@ -127,7 +147,8 @@ final class DocxRenderer
                 $cell = $tableRow->addCell();
                 if ($value !== null) {
                     foreach (explode("\n", $value) as $line) {
-                        $cell->addText($this->clean($line), ['size' => $size]);
+                        // A link column: a marker replaced by a HYPERLINK field once the table XML is written.
+                        $cell->addText(($column['link'] ?? false) ? '[[link:'.rtrim(strtr(base64_encode($line), '+/', '-_'), '=').']]' : $this->clean($line), ['size' => $size]);
                     }
                 } elseif ($column['required']) {
                     $cell->addText($this->missing(), ['size' => $size, 'italic' => true, 'color' => self::MISSING_COLOR]);
@@ -137,7 +158,7 @@ final class DocxRenderer
             }
         }
 
-        $xml = $processor->tableXml($table);
+        $xml = $this->hyperlinks($processor->tableXml($table), $size);
 
         if (count($rows) > count($shown)) {
             $xml .= $this->paragraph(sprintf('Extrait : %d premières lignes sur %d. La liste complète figure dans l’annexe XLSX.', count($shown), count($rows)), italic: true);

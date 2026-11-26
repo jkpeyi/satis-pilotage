@@ -16,10 +16,12 @@ use App\Models\Integration;
 use App\Models\Version;
 use DomainException;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 /**
- * Technical architecture of a version (SPEC-001 L3): its components and their integrations.
+ * Technical architecture of a version (SPEC-001 L3): its components and their integrations,
+ * shown in the version page under the repositories.
  */
 class Architecture extends Component
 {
@@ -35,6 +37,8 @@ class Architecture extends Component
 
     public bool $showIntegrationForm = false;
 
+    /** Follows the « show archived items » toggle of the version page. */
+    #[Reactive]
     public bool $showArchived = false;
 
     public function createComponent(): void
@@ -139,7 +143,7 @@ class Architecture extends Component
                 ->mapWithKeys(fn (ComponentModel $component): array => [
                     $component->id => $component->displayCode().' · '.$component->name.($component->version_id !== $this->version->id ? ' ('.$component->version->name.')' : ''),
                 ]),
-        ])->title('Architecture — '.$this->version->name);
+        ]);
     }
 
     private function findComponent(int $componentId): ComponentModel

@@ -37,10 +37,11 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Client, type de client | `Customer` (avoids confusion with `GitLabClient` / HTTP client), `CustomerType` (bank, insurance, microfinance, other) |
 | Version | `Version` |
 | Version de référence | `Product::referenceVersion` |
-| Dépôt | `Repository` (environments, releases and deployments are not tracked: L1 says so) |
+| Dépôt | `Repository` (entered by its full GitLab URL; releases and deployments are not tracked) |
+| Environnement | `Environment` (displayed `ENV-0001`): `EnvironmentType` production / staging (pré-production) / testing, a name and notes |
 | Cycle de vie | `VersionStatus` (`future` = perspective such as Satis_SaaS, never counted in production) |
 | Pivot historique | `Version::is_historical_pivot` (point of comparison, never a target) |
-| Responsable technique | `Version::technicalOwner` |
+| Responsable technique, suppléant | `Version::technicalOwner`, `Version::deputy` (another user) |
 | Statut de vérification | `VerificationStatus` (`Verifiable` concern: records who decided and when) |
 | Technologie, stack | `Technology`, `stack`. Cycles used by repositories and components register themselves (`RegisterTechnologies`, without end-of-support date); `technologies:sync` brings in older entries |
 | Module, sous-module | `Module` (a sub-module is a `Module` with a `parent_id`) |
