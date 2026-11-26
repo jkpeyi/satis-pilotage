@@ -1,23 +1,9 @@
 <div>
-    <x-ui.page-header title="Architecture" description="Composants techniques de l'application et flux avec les autres composants ou des systèmes externes.">
-        <x-slot:breadcrumbs>
-            <a href="{{ route('versions.index') }}" wire:navigate class="hover:text-slate-900">Versions</a>
-            / <a href="{{ route('versions.show', $version) }}" wire:navigate class="hover:text-slate-900">{{ $version->name }}</a>
-        </x-slot:breadcrumbs>
-        <x-slot:actions>
-            <x-ui.button wire:click="createComponent">Ajouter un composant</x-ui.button>
-            @if ($components->isNotEmpty())
-                <x-ui.button variant="secondary" wire:click="createIntegration">Ajouter une intégration</x-ui.button>
-            @endif
-        </x-slot:actions>
-    </x-ui.page-header>
-
-    <div class="mb-3 flex justify-end">
-        <x-ui.archived-toggle wire:model.live="showArchived" />
-    </div>
-
     <div class="space-y-6">
         <x-ui.card title="Composants">
+            <x-slot:actions>
+                <x-ui.button size="sm" wire:click="createComponent">Ajouter un composant</x-ui.button>
+            </x-slot:actions>
             @if ($components->isEmpty())
                 <x-ui.empty>Aucun composant. Décrivez par exemple l'API, le front web et les traitements batch de cette application.</x-ui.empty>
             @else
@@ -60,6 +46,11 @@
         </x-ui.card>
 
         <x-ui.card title="API et intégrations">
+            @if ($components->reject(fn ($item) => $item->isArchived())->isNotEmpty())
+                <x-slot:actions>
+                    <x-ui.button size="sm" wire:click="createIntegration">Ajouter une intégration</x-ui.button>
+                </x-slot:actions>
+            @endif
             @if ($integrations->isEmpty())
                 <x-ui.empty>Aucune intégration. Une intégration part d'un composant vers un autre composant ou vers un système externe.</x-ui.empty>
             @else

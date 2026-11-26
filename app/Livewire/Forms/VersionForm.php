@@ -25,6 +25,8 @@ class VersionForm extends Form
 
     public string $technical_owner_id = '';
 
+    public string $deputy_id = '';
+
     public string $verification_status = 'to_verify';
 
     public string $notes = '';
@@ -38,6 +40,7 @@ class VersionForm extends Form
         $this->status = $version->status->value;
         $this->is_historical_pivot = $version->is_historical_pivot;
         $this->technical_owner_id = (string) $version->technical_owner_id;
+        $this->deputy_id = (string) $version->deputy_id;
         $this->verification_status = $version->verification_status->value;
         $this->notes = (string) $version->notes;
     }
@@ -57,13 +60,22 @@ class VersionForm extends Form
             'status' => ['required', Rule::enum(VersionStatus::class)],
             'is_historical_pivot' => ['boolean'],
             'technical_owner_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'deputy_id' => ['nullable', 'integer', Rule::exists('users', 'id'), 'different:technical_owner_id'],
             'verification_status' => ['required', Rule::enum(VerificationStatus::class)],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 
     /**
-     * @return array{product_id: int, customer_id: ?int, name: string, status: VersionStatus, is_historical_pivot: bool, technical_owner_id: ?int, verification_status: VerificationStatus, notes: ?string}
+     * @return array<string, string>
+     */
+    protected function messages(): array
+    {
+        return ['deputy_id.different' => 'Le suppléant doit être une autre personne que le responsable technique.'];
+    }
+
+    /**
+     * @return array{product_id: int, customer_id: ?int, name: string, status: VersionStatus, is_historical_pivot: bool, technical_owner_id: ?int, deputy_id: ?int, verification_status: VerificationStatus, notes: ?string}
      */
     public function data(): array
     {
@@ -76,6 +88,7 @@ class VersionForm extends Form
             'status' => VersionStatus::from($this->status),
             'is_historical_pivot' => $this->is_historical_pivot,
             'technical_owner_id' => $this->technical_owner_id !== '' ? (int) $this->technical_owner_id : null,
+            'deputy_id' => $this->deputy_id !== '' ? (int) $this->deputy_id : null,
             'verification_status' => VerificationStatus::from($this->verification_status),
             'notes' => $this->notes !== '' ? $this->notes : null,
         ];

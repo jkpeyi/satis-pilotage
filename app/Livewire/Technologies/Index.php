@@ -7,6 +7,7 @@ use App\Actions\Referential\SyncTechnologiesFromEstate;
 use App\Enums\SupportStatus;
 use App\Livewire\Forms\TechnologyForm;
 use App\Models\Technology;
+use App\Queries\TechnologyUsage;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -72,6 +73,7 @@ class Index extends Component
         return view('livewire.technologies.index', [
             'missing' => $missing,
             'technologies' => $technologies->groupBy('component'),
+            'usage' => app(TechnologyUsage::class)->versionsByTechnology(),
             'statuses' => $technologies->mapWithKeys(fn (Technology $technology): array => [
                 $technology->id => match (true) {
                     $technology->end_of_support === null => SupportStatus::Unknown,

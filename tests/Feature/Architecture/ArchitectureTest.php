@@ -100,15 +100,17 @@ it('archives and restores components and integrations', function () {
     Livewire::test(Architecture::class, ['version' => $this->version])
         ->call('toggleIntegrationArchive', $integration->id)
         ->call('toggleComponentArchive', $component->id)
-        ->assertDontSee('Moteur de rapprochement')
-        ->set('showArchived', true)
+        ->assertDontSee('Moteur de rapprochement');
+
+    // The toggle « éléments archivés » of the version page is passed down to the block.
+    Livewire::test(Architecture::class, ['version' => $this->version, 'showArchived' => true])
         ->assertSee('Moteur de rapprochement')
         ->call('toggleComponentArchive', $component->id);
 
     expect($component->refresh()->isArchived())->toBeFalse()->and($integration->refresh()->isArchived())->toBeTrue();
 });
 
-it('renders the architecture page and links it from the version page', function () {
-    $this->get(route('versions.show', $this->version))->assertOk()->assertSee(route('versions.architecture', $this->version));
-    $this->get(route('versions.architecture', $this->version))->assertOk()->assertSee('API et intégrations');
+it('shows components and integrations in the version page, under the repositories', function () {
+    $this->get(route('versions.show', $this->version))->assertOk()
+        ->assertSeeInOrder(['Dépôts', 'Composants', 'API et intégrations', 'Environnements']);
 });

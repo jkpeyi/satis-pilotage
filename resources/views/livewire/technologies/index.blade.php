@@ -23,14 +23,24 @@
                 <x-ui.card :title="$componentName" wire:key="component-{{ $componentName }}">
                     <ul class="divide-y divide-slate-100 text-sm">
                         @foreach ($cycles as $technology)
-                            <li class="flex items-center justify-between gap-4 py-2" wire:key="technology-{{ $technology->id }}">
-                                <span class="font-mono">{{ $technology->cycle }}</span>
-                                <span @class(['flex-1', 'text-slate-500' => $technology->end_of_support, 'font-medium text-amber-800' => ! $technology->end_of_support])>{{ $technology->end_of_support?->format('d/m/Y') ?? 'À renseigner' }}</span>
-                                <x-ui.badge :color="$statuses[$technology->id]->color()">{{ $statuses[$technology->id]->label() }}</x-ui.badge>
-                                <span class="whitespace-nowrap">
-                                    <x-ui.button size="sm" variant="ghost" wire:click="edit({{ $technology->id }})">Modifier</x-ui.button>
-                                    <x-ui.button size="sm" variant="ghost" wire:click="delete({{ $technology->id }})" wire:confirm="Supprimer ce cycle ?">Supprimer</x-ui.button>
-                                </span>
+                            <li class="py-2" wire:key="technology-{{ $technology->id }}">
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="font-mono">{{ $technology->cycle }}</span>
+                                    <span @class(['flex-1', 'text-slate-500' => $technology->end_of_support, 'font-medium text-amber-800' => ! $technology->end_of_support])>{{ $technology->end_of_support?->format('d/m/Y') ?? 'À renseigner' }}</span>
+                                    <x-ui.badge :color="$statuses[$technology->id]->color()">{{ $statuses[$technology->id]->label() }}</x-ui.badge>
+                                    <span class="whitespace-nowrap">
+                                        <x-ui.button size="sm" variant="ghost" wire:click="edit({{ $technology->id }})">Modifier</x-ui.button>
+                                        <x-ui.button size="sm" variant="ghost" wire:click="delete({{ $technology->id }})" wire:confirm="Supprimer ce cycle ?">Supprimer</x-ui.button>
+                                    </span>
+                                </div>
+                                <div class="mt-1 text-xs text-slate-500">
+                                    <span class="font-medium text-slate-600">Versions client :</span>
+                                    @forelse ($usage[$technology->id] ?? [] as $version)
+                                        <a href="{{ route('versions.show', $version) }}" wire:navigate class="hover:text-brand-700 hover:underline">{{ $version->name }}</a>@if (! $loop->last), @endif
+                                    @empty
+                                        aucune
+                                    @endforelse
+                                </div>
                             </li>
                         @endforeach
                     </ul>

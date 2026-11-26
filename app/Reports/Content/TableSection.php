@@ -8,7 +8,7 @@ namespace App\Reports\Content;
  */
 final class TableSection
 {
-    /** @var list<array{key: string, label: string, required: bool, in_document: bool}> */
+    /** @var list<array{key: string, label: string, required: bool, in_document: bool, link?: bool}> */
     private array $columns = [];
 
     /** @var list<array<string, string|null>> */
@@ -20,9 +20,10 @@ final class TableSection
      * A column not in the document (same value on every row, e.g. the analyzed commit) is still
      * written in the XLSX annex.
      */
-    public function column(string $key, string $label, bool $required = true, bool $inDocument = true): self
+    public function column(string $key, string $label, bool $required = true, bool $inDocument = true, bool $link = false): self
     {
-        $this->columns[] = ['key' => $key, 'label' => $label, 'required' => $required, 'in_document' => $inDocument];
+        // "link" is only set when true, so that the snapshots of the other tables do not change.
+        $this->columns[] = ['key' => $key, 'label' => $label, 'required' => $required, 'in_document' => $inDocument] + ($link ? ['link' => true] : []);
 
         return $this;
     }
@@ -43,7 +44,7 @@ final class TableSection
     }
 
     /**
-     * @return list<array{key: string, label: string, required: bool, in_document: bool}>
+     * @return list<array{key: string, label: string, required: bool, in_document: bool, link?: bool}>
      */
     public function columns(): array
     {
@@ -51,7 +52,7 @@ final class TableSection
     }
 
     /**
-     * @return list<array{key: string, label: string, required: bool, in_document: bool}>
+     * @return list<array{key: string, label: string, required: bool, in_document: bool, link?: bool}>
      */
     public function documentColumns(): array
     {

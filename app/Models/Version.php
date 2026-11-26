@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Deployment of a product for a customer. A version without customer is a baseline.
  */
-#[Fillable(['product_id', 'customer_id', 'name', 'status', 'is_historical_pivot', 'technical_owner_id', 'notes'])]
+#[Fillable(['product_id', 'customer_id', 'name', 'status', 'is_historical_pivot', 'technical_owner_id', 'deputy_id', 'notes'])]
 class Version extends Model
 {
     /** @use HasFactory<VersionFactory> */
@@ -69,6 +69,24 @@ class Version extends Model
     public function technicalOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'technical_owner_id');
+    }
+
+    /**
+     * @return HasMany<Environment, $this>
+     */
+    public function environments(): HasMany
+    {
+        return $this->hasMany(Environment::class)->orderByRaw("FIELD(type, 'production', 'staging', 'testing', 'other')")->orderBy('name');
+    }
+
+    /**
+     * Deputy of the technical owner (« suppléant »).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function deputy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deputy_id');
     }
 
     /**

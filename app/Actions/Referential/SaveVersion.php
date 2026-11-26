@@ -16,7 +16,7 @@ final class SaveVersion
      *
      * A verification decision records who took it and when.
      *
-     * @param  array{product_id: int, customer_id: ?int, name: string, status: VersionStatus, is_historical_pivot: bool, technical_owner_id: ?int, verification_status: VerificationStatus, notes: ?string}  $data
+     * @param  array{product_id: int, customer_id: ?int, name: string, status: VersionStatus, is_historical_pivot: bool, technical_owner_id: ?int, deputy_id: ?int, verification_status: VerificationStatus, notes: ?string}  $data
      */
     public function handle(array $data, ?Version $version = null): Version
     {

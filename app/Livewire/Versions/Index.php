@@ -42,8 +42,7 @@ class Index extends Component
     public function render(): View
     {
         $versions = Version::query()
-            ->with(['product', 'customer'])
-            ->withCount(['repositories' => fn (Builder $query) => $query->whereNull('archived_at')])
+            ->with(['product', 'customer', 'technicalOwner', 'deputy', 'repositories', 'components'])
             ->when(! $this->showArchived, fn (Builder $query) => $query->whereNull('versions.archived_at'))
             ->when($this->product !== '', fn (Builder $query) => $query->where('product_id', $this->product))
             ->when($this->customer === 'none', fn (Builder $query) => $query->whereNull('customer_id'))

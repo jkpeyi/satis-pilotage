@@ -2,11 +2,13 @@
 
 use App\Actions\Reports\GenerateReport;
 use App\Enums\ComponentType;
+use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
 use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
 use App\Models\Component;
 use App\Models\Customer;
+use App\Models\Environment;
 use App\Models\Product;
 use App\Models\ReportGeneration;
 use App\Models\Repository;
@@ -45,6 +47,7 @@ beforeEach(function () {
         'web_url' => 'https://gitlab.example.test/satis/macro-alpha-api',
         'stack' => ['php' => '7.4.33'],
     ]);
+    Environment::query()->create(['version_id' => $this->version->id, 'type' => EnvironmentType::Production, 'name' => 'Production Abidjan', 'notes' => 'Hébergée chez le client.']);
     Component::factory()->for($this->version)->create(['name' => 'Base principale', 'type' => ComponentType::Database, 'technology' => 'MySQL', 'technology_version' => '5.7']);
     Technology::factory()->create(['component' => 'php', 'cycle' => '7.4', 'end_of_support' => '2022-11-28']);
 
@@ -73,10 +76,14 @@ it('generates the L1 Word document and its XLSX annex from the central data', fu
         ->toContain('Brouillon')
         ->toContain($this->version->displayCode())
         ->toContain($this->customer->displayCode().' · Banque Alpha')
-        ->toContain('satis/macro-alpha-api (php 7.4.33)')
-        ->toContain('https://gitlab.example.test/satis/macro-alpha-api')
+        ->toContain('php 7.4.33')
+        ->not->toContain('satis/macro-alpha-api (php 7.4.33)')
+        ->toContain('satis/macro-alpha-api')
         ->toContain('MySQL 5.7')
-        ->toContain('Les environnements, releases et déploiements ne sont pas suivis dans l’application')
+        ->toContain('Production Abidjan')
+        ->toContain('Hébergée chez le client.')
+        ->not->toContain('Statut de vérification')
+        ->not->toContain('Rôle de comparaison')
         ->toContain('php 7.4.33, hors support');
 });
 
@@ -87,16 +94,18 @@ it('shows missing data as "À confirmer" and lists it in the pending items', fun
     expect($text)
         ->toContain('À confirmer')
         ->toContain('Applications — Responsable technique : 1 valeur à confirmer')
-        ->toContain('Environnements et déploiements : non suivis dans l’application')
+        ->toContain('Applications — Suppléant : 1 valeur à confirmer')
         ->toContain('responsable technique non désigné')
+        ->toContain('suppléant non désigné')
         ->toContain('Applications — Frontend : 1 valeur à confirmer')
         ->and($generation->missing_count)->toBeGreaterThan(0)
         ->and((float) $generation->completeness)->toBeLessThan(100.0);
 });
 
-it('reports the owner and the verification of each application', function () {
+it('reports the owner, the deputy and the stacks of each application, with a clickable repository', function () {
     $this->actingAs($this->user);
-    $this->version->update(['technical_owner_id' => $this->user->id, 'is_historical_pivot' => true]);
+    $deputy = User::factory()->create(['name' => 'Koffi Yao']);
+    $this->version->update(['technical_owner_id' => $this->user->id, 'deputy_id' => $deputy->id, 'is_historical_pivot' => true]);
     $this->version->applyVerificationStatus(VerificationStatus::Verified);
     $this->version->save();
 
@@ -104,10 +113,17 @@ it('reports the owner and the verification of each application', function () {
     $snapshot = json_decode($generation->snapshot, true);
     $application = $snapshot['sections']['applications.table']['rows'][0];
 
+    $zip = new ZipArchive;
+    $zip->open(Storage::disk('local')->path($generation->docx_path));
+    $document = (string) $zip->getFromName('word/document.xml');
+    $zip->close();
+
     expect($application['technical_owner'])->toBe('Awa Koné')
-        ->and($application['verification_status'])->toBe('Vérifié')
-        ->and($application['comparison_role'])->toBe('Pivot historique')
+        ->and($application['deputy'])->toBe('Koffi Yao')
+        ->and($application['backend'])->toBe('php 7.4.33')
+        ->and($application)->not->toHaveKeys(['verification_status', 'comparison_role'])
         ->and($application['database_engine'])->toBe('MySQL 5.7')
+        ->and($document)->toContain('HYPERLINK &quot;https://gitlab.example.test/satis/macro-alpha-api&quot;')
         ->and(docxText(Storage::disk('local')->path($generation->docx_path)))
         ->toContain('Pivot historique (point de comparaison, pas une cible)')
         ->not->toContain('responsable technique non désigné');
@@ -175,7 +191,7 @@ it('caps long tables in the Word document and keeps every row in the XLSX annex'
     expect($text)->toContain('Extrait : 1 premières lignes sur 2');
 
     $spreadsheet = IOFactory::load(Storage::disk('local')->path($generation->xlsx_path));
-    expect($spreadsheet->getSheetNames())->toBe(['Contrôle', 'Applications'])
+    expect($spreadsheet->getSheetNames())->toBe(['Contrôle', 'Applications', 'Environnements'])
         ->and($spreadsheet->getSheetByName('Applications')?->getHighestRow())->toBe(3)
         ->and($spreadsheet->getSheetByName('Contrôle')?->getCell('B2')->getFormattedValue())->toBe($generation->documentId());
 });

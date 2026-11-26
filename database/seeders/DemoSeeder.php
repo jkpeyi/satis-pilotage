@@ -24,6 +24,7 @@ use App\Enums\ComponentType;
 use App\Enums\Confidence;
 use App\Enums\CustomerType;
 use App\Enums\DecisionStatus;
+use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
 use App\Enums\IntegrationProtocol;
 use App\Enums\IssueSeverity;
@@ -40,6 +41,7 @@ use App\Enums\WorkPackageStatus;
 use App\Models\BusinessRule;
 use App\Models\Component;
 use App\Models\Customer;
+use App\Models\Environment;
 use App\Models\Feature;
 use App\Models\Implementation;
 use App\Models\Integration;
@@ -87,6 +89,10 @@ class DemoSeeder extends Seeder
         ]);
 
         $this->seedArchitecture($versionA, $apiA, $frontA);
+
+        Environment::query()->create(['version_id' => $versionA->id, 'type' => EnvironmentType::Production, 'name' => 'Production', 'notes' => 'Hébergée dans le centre de données du client.']);
+        Environment::query()->create(['version_id' => $versionA->id, 'type' => EnvironmentType::Staging, 'name' => 'Pré-production', 'notes' => 'Données anonymisées, rafraîchies chaque mois.']);
+        Environment::query()->create(['version_id' => $versionA->id, 'type' => EnvironmentType::Testing, 'name' => 'Recette']);
 
         foreach ([['php', '8.1', '2025-12-31'], ['php', '8.3', '2027-12-31'], ['laravel', '9', '2024-02-06'], ['laravel', '12', '2027-02-24'], ['node', '16', '2023-09-11'], ['mysql', '5.7', '2023-10-31'], ['mysql', '8.0', '2026-04-30']] as [$component, $cycle, $end]) {
             Technology::query()->create(['component' => $component, 'cycle' => $cycle, 'end_of_support' => $end]);

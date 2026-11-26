@@ -4,11 +4,12 @@ namespace App\Reports\Builders;
 
 use App\Actions\Referential\ResolveStackSupport;
 use App\Enums\ComponentType;
+use App\Enums\EnvironmentType;
 use App\Enums\RepositoryRole;
 use App\Enums\SupportStatus;
 use App\Enums\VerificationStatus;
 use App\Enums\VersionStatus;
-use App\Models\Component;
+use App\Models\Environment;
 use App\Models\Repository;
 use App\Models\Version;
 use App\Reports\Content\ReportContent;
@@ -16,12 +17,14 @@ use App\Reports\Content\TableSection;
 use App\Reports\Content\TextSection;
 use App\Reports\Contracts\ReportBuilder;
 use App\Reports\ReportScope;
+use App\Support\VersionInventory;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * L1 — Cartographie du patrimoine applicatif: one application per version, with its repositories
- * and database components. Environments, releases and deployments are not tracked in the
- * application: their section says so. A future perspective (e.g. Satis_SaaS) is left
+ * stacks, database components, owner and deputy, and its environments (releases and deployments
+ * are not tracked). A future perspective (e.g. Satis_SaaS) is left
  * out of the inventory (SPEC-001, scenario 9). Missing data is left empty, shown as "À confirmer".
  */
 final class L1Builder implements ReportBuilder
@@ -40,8 +43,10 @@ final class L1Builder implements ReportBuilder
             ->with([
                 'customer',
                 'technicalOwner',
+                'deputy',
                 'repositories' => fn ($query) => $query->active()->orderBy('path'),
                 'components' => fn ($query) => $query->active()->where('type', ComponentType::Database->value)->orderBy('name'),
+                'environments' => fn ($query) => $query->active(),
             ])
             ->orderBy('name')
             ->orderBy('id')
@@ -56,9 +61,8 @@ final class L1Builder implements ReportBuilder
 
         return $content
             ->set('applications.summary', $this->summary($versions, $future, $product->reference_version_id))
-            ->set('applications.table', $this->applications($versions, $product->name, $product->reference_version_id))
-            ->set('deployments.table', (new TextSection)->paragraph('Les environnements, releases et déploiements ne sont pas suivis dans l’application : la version déployée sur chaque environnement est à confirmer auprès des équipes d’exploitation.'))
-            ->addPending('Environnements et déploiements : non suivis dans l’application')
+            ->set('applications.table', $this->applications($versions, $product->name))
+            ->set('deployments.table', $this->environments($versions))
             ->set('applications.constraints', $this->constraints($versions))
             ->set('applications.pending_verifications', $this->pendingVerifications($versions));
     }
@@ -71,14 +75,16 @@ final class L1Builder implements ReportBuilder
     {
         $baselines = $versions->filter(fn (Version $version): bool => $version->isBaseline())->count();
         $repositories = $versions->sum(fn (Version $version): int => $version->repositories->count());
+        $environments = $versions->sum(fn (Version $version): int => $version->environments->count());
         $reference = $versions->firstWhere('id', $referenceVersionId);
 
         $section = (new TextSection)->paragraph(sprintf(
-            '%d application%s dans le périmètre (%d version%s client, %d version%s de base sans client), %d dépôt%s enregistré%s.',
+            '%d application%s dans le périmètre (%d version%s client, %d version%s de base sans client), %d dépôt%s et %d environnement%s enregistrés.',
             $versions->count(), $this->plural($versions->count()),
             $versions->count() - $baselines, $this->plural($versions->count() - $baselines),
             $baselines, $this->plural($baselines),
-            $repositories, $this->plural($repositories), $this->plural($repositories),
+            $repositories, $this->plural($repositories),
+            $environments, $this->plural($environments),
         ));
 
         $retired = $versions->filter(fn (Version $version): bool => $version->status === VersionStatus::Retired);
@@ -99,13 +105,13 @@ final class L1Builder implements ReportBuilder
             $section->paragraph('Hors inventaire de production (perspectives futures) : '.$future->map(fn (Version $version): string => $version->displayCode().' · '.$version->name)->implode(', ').'.');
         }
 
-        return $section->paragraph('Une application correspond à une version déployée du produit (implémentation client). Les identifiants APP-, CLI- et DEP- sont stables d’un export à l’autre.');
+        return $section->paragraph('Une application correspond à une version déployée du produit (implémentation client). Les identifiants APP-, CLI-, DEP- et ENV- sont stables d’un export à l’autre.');
     }
 
     /**
      * @param  Collection<int, Version>  $versions
      */
-    private function applications(Collection $versions, string $productName, ?int $referenceVersionId): TableSection
+    private function applications(Collection $versions, string $productName): TableSection
     {
         $table = (new TableSection('Applications'))
             ->column('application_id', 'Identifiant')
@@ -113,13 +119,12 @@ final class L1Builder implements ReportBuilder
             ->column('client_id', 'Client')
             ->column('product', 'Produit')
             ->column('status', 'Cycle de vie', required: false)
-            ->column('comparison_role', 'Rôle de comparaison', required: false)
             ->column('backend', 'Backend')
             ->column('frontend', 'Frontend')
             ->column('database_engine', 'Base de données')
-            ->column('repository_url', 'Dépôt')
+            ->column('repository_url', 'Dépôt', link: true)
             ->column('technical_owner', 'Responsable technique')
-            ->column('verification_status', 'Statut de vérification');
+            ->column('deputy', 'Suppléant');
 
         foreach ($versions as $version) {
             $table->row([
@@ -130,17 +135,41 @@ final class L1Builder implements ReportBuilder
                     : 'Sans objet (version de base)',
                 'product' => $productName,
                 'status' => $version->status->label(),
-                'comparison_role' => collect([
-                    $version->id === $referenceVersionId ? 'Version de référence' : null,
-                    $version->is_historical_pivot ? 'Pivot historique' : null,
-                ])->filter()->implode(', '),
-                'backend' => $this->repositoriesWithRole($version, RepositoryRole::Backend),
-                'frontend' => $this->repositoriesWithRole($version, RepositoryRole::Frontend),
-                'database_engine' => $version->components->map(fn (Component $component): ?string => $component->technologyLabel())->filter()->unique()->implode("\n"),
-                'repository_url' => $version->repositories->pluck('web_url')->filter()->implode("\n"),
+                // Stacks only: the technologies and their versions.
+                'backend' => VersionInventory::stack($version, RepositoryRole::Backend),
+                'frontend' => VersionInventory::stack($version, RepositoryRole::Frontend),
+                'database_engine' => VersionInventory::databases($version),
+                'repository_url' => implode("\n", VersionInventory::repositoryUrls($version)),
                 'technical_owner' => $version->technicalOwner?->name,
-                'verification_status' => $version->verification_status->label(),
+                'deputy' => $version->deputy?->name,
             ]);
+        }
+
+        return $table;
+    }
+
+    /**
+     * Environments of each application: kind, name and notes. Releases and deployments are not tracked.
+     *
+     * @param  Collection<int, Version>  $versions
+     */
+    private function environments(Collection $versions): TableSection
+    {
+        $table = (new TableSection('Environnements'))
+            ->column('application_id', 'Application')
+            ->column('environment', 'Environnement')
+            ->column('type', 'Type')
+            ->column('notes', 'Remarques', required: false);
+
+        foreach ($versions as $version) {
+            foreach ($version->environments as $environment) {
+                $table->row([
+                    'application_id' => $version->displayCode().' · '.$version->name,
+                    'environment' => $environment->displayCode().' · '.$environment->name,
+                    'type' => $environment->type->label(),
+                    'notes' => $environment->notes !== null ? Str::limit(trim((string) preg_replace('/\s+/u', ' ', $environment->notes)), 300, '…') : null,
+                ]);
+            }
         }
 
         return $table;
@@ -209,6 +238,14 @@ final class L1Builder implements ReportBuilder
                 $items[] = $label.' : responsable technique non désigné.';
             }
 
+            if ($version->deputy === null) {
+                $items[] = $label.' : suppléant non désigné.';
+            }
+
+            if ($version->environments->doesntContain(fn (Environment $environment): bool => $environment->type === EnvironmentType::Production)) {
+                $items[] = $label.' : aucun environnement de production enregistré.';
+            }
+
             if ($version->repositories->isEmpty()) {
                 $items[] = $label.' : aucun dépôt enregistré.';
             }
@@ -228,21 +265,6 @@ final class L1Builder implements ReportBuilder
         return $items === []
             ? $section->paragraph('Aucune vérification en attente sur ce périmètre.')
             : $section->bullets($items);
-    }
-
-    private function repositoriesWithRole(Version $version, RepositoryRole $role): string
-    {
-        return $version->repositories
-            ->filter(fn (Repository $repository): bool => $repository->role === $role)
-            ->map(function (Repository $repository): string {
-                $stack = collect($repository->stack ?? [])
-                    ->sortKeys()
-                    ->map(fn (string $version, string $component): string => $component.' '.$version)
-                    ->implode(', ');
-
-                return $repository->displayCode().' · '.$repository->path.($stack !== '' ? ' ('.$stack.')' : '');
-            })
-            ->implode("\n");
     }
 
     private function plural(int $count): string

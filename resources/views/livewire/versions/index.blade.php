@@ -34,11 +34,16 @@
     @else
         <x-ui.table>
             <x-slot:head>
-                <th>Version</th>
-                <th>Produit</th>
+                <th>Application</th>
                 <th>Client</th>
+                <th>Produit</th>
                 <th>Cycle de vie</th>
-                <th class="text-right">Dépôts</th>
+                <th>Backend</th>
+                <th>Frontend</th>
+                <th>Base de données</th>
+                <th>Dépôts</th>
+                <th>Responsable technique</th>
+                <th>Suppléant</th>
             </x-slot:head>
             @foreach ($versions as $version)
                 <tr wire:key="version-{{ $version->id }}" @class(['opacity-60' => $version->isArchived()])>
@@ -47,10 +52,21 @@
                         @if ($version->product->reference_version_id === $version->id) <x-ui.badge color="blue">Référence</x-ui.badge> @endif
                         @if ($version->isArchived()) <x-ui.badge>Archivée</x-ui.badge> @endif
                     </td>
-                    <td>{{ $version->product->name }}</td>
                     <td>{{ $version->customer?->name ?? 'Socle' }}</td>
-                    <td>{{ $version->status->label() }}</td>
-                    <td class="text-right tabular-nums">{{ $version->repositories_count }}</td>
+                    <td>{{ $version->product->name }}</td>
+                    <td class="whitespace-nowrap">{{ $version->status->label() }}</td>
+                    <td class="text-xs">{{ \App\Support\VersionInventory::stack($version, \App\Enums\RepositoryRole::Backend) ?: '—' }}</td>
+                    <td class="text-xs">{{ \App\Support\VersionInventory::stack($version, \App\Enums\RepositoryRole::Frontend) ?: '—' }}</td>
+                    <td class="text-xs">{{ \App\Support\VersionInventory::databases($version) ?: '—' }}</td>
+                    <td class="text-xs">
+                        @forelse (\App\Support\VersionInventory::repositoryUrls($version) as $url)
+                            <a href="{{ $url }}" target="_blank" rel="noopener" class="block break-all text-brand-700 hover:underline">{{ \App\Models\Repository::pathFromUrl($url) ?? $url }}</a>
+                        @empty
+                            —
+                        @endforelse
+                    </td>
+                    <td class="text-sm">{{ $version->technicalOwner?->name ?? '—' }}</td>
+                    <td class="text-sm">{{ $version->deputy?->name ?? '—' }}</td>
                 </tr>
             @endforeach
         </x-ui.table>
