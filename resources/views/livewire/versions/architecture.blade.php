@@ -29,7 +29,6 @@
                             <td class="max-w-xs text-xs text-slate-600">{{ $item->description !== null ? \Illuminate\Support\Str::limit($item->description, 160) : '—' }}</td>
                             <td class="whitespace-nowrap text-right">
                                 @unless ($item->isArchived())
-                                    <x-ui.button size="sm" variant="ghost" wire:click="createIntegration({{ $item->id }})">Intégration</x-ui.button>
                                     <x-ui.button size="sm" variant="ghost" wire:click="editComponent({{ $item->id }})">Modifier</x-ui.button>
                                 @endunless
                                 <x-ui.button size="sm" variant="ghost" wire:click="toggleComponentArchive({{ $item->id }})">

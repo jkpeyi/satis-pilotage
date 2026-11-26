@@ -41,7 +41,9 @@ it('describes components and integrations from the architecture page', function 
     [$api, $front] = [Component::query()->where('name', 'API métier')->sole(), Component::query()->where('name', 'Front agences')->sole()];
     expect($api->technologyLabel())->toBe('Laravel 9.52.16')
         ->and($api->description)->toBe('Expose les **services** métier.');
-    $page->assertSee('Expose les **services** métier.');
+    // Integrations are added from the « API et intégrations » card only, not from a component row.
+    $page->assertSee('Expose les **services** métier.')
+        ->assertDontSeeHtml('wire:click="createIntegration('.$api->id.')"');
 
     $page->call('createIntegration', $front->id)
         ->set('integrationForm.target_component_id', (string) $front->id)
