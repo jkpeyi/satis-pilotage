@@ -19,7 +19,7 @@ use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
- * "Fiche version": details, repositories with their stack, components and integrations, environments.
+ * "Fiche version": details, repositories with their stack, components, environments.
  */
 class Show extends Component
 {

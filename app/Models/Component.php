@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Technical component of an application (SPEC-001 L3): an API, a front end, a batch…
@@ -57,14 +56,6 @@ class Component extends Model
     public function repository(): BelongsTo
     {
         return $this->belongsTo(Repository::class);
-    }
-
-    /**
-     * @return HasMany<Integration, $this>
-     */
-    public function outgoingIntegrations(): HasMany
-    {
-        return $this->hasMany(Integration::class, 'source_component_id');
     }
 
     /**

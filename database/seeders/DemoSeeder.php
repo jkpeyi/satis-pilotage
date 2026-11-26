@@ -26,7 +26,6 @@ use App\Enums\CustomerType;
 use App\Enums\DecisionStatus;
 use App\Enums\EnvironmentType;
 use App\Enums\ImplementationStatus;
-use App\Enums\IntegrationProtocol;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
 use App\Enums\IssueType;
@@ -36,7 +35,6 @@ use App\Enums\RuleSource;
 use App\Enums\RuleStatus;
 use App\Enums\SnippetKind;
 use App\Enums\ToolResultFormat;
-use App\Enums\VerificationStatus;
 use App\Enums\WorkPackageStatus;
 use App\Models\BusinessRule;
 use App\Models\Component;
@@ -44,7 +42,6 @@ use App\Models\Customer;
 use App\Models\Environment;
 use App\Models\Feature;
 use App\Models\Implementation;
-use App\Models\Integration;
 use App\Models\Issue;
 use App\Models\Module;
 use App\Models\Product;
@@ -366,7 +363,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Components and integrations of an application (SPEC-001 L3).
+     * Components of an application (SPEC-001 L3).
      */
     private function seedArchitecture(Version $version, Repository $api, Repository $front): void
     {
@@ -375,16 +372,9 @@ class DemoSeeder extends Seeder
             'technology' => $technology, 'technology_version' => $technologyVersion,
         ]);
 
-        $backend = $component('API métier', ComponentType::Api, $api, 'Laravel', '9.52.16');
-        $web = $component('Front agences', ComponentType::Web, $front, 'React', '17.0.2');
-        $batch = $component('Batch de clôture journalière', ComponentType::Batch, $api, 'Laravel', '9.52.16');
-        $database = $component('Base de production', ComponentType::Database, null, 'MySQL', '5.7');
-        $backend->applyVerificationStatus(VerificationStatus::Verified);
-        $backend->save();
-
-        Integration::query()->create(['source_component_id' => $web->id, 'target_component_id' => $backend->id, 'protocol' => IntegrationProtocol::Rest, 'description' => 'Toutes les opérations des agences.']);
-        Integration::query()->create(['source_component_id' => $backend->id, 'target_component_id' => $database->id, 'protocol' => IntegrationProtocol::Database]);
-        Integration::query()->create(['source_component_id' => $backend->id, 'external_system' => 'Opérateur de paiement mobile', 'protocol' => IntegrationProtocol::Rest, 'description' => 'Décaissements et remboursements par mobile money.']);
-        Integration::query()->create(['source_component_id' => $batch->id, 'external_system' => 'Centrale des risques', 'protocol' => IntegrationProtocol::File, 'description' => 'Déclaration mensuelle des encours.']);
+        $component('API métier', ComponentType::Api, $api, 'Laravel', '9.52.16');
+        $component('Front agences', ComponentType::Web, $front, 'React', '17.0.2');
+        $component('Batch de clôture journalière', ComponentType::Batch, $api, 'Laravel', '9.52.16');
+        $component('Base de production', ComponentType::Database, null, 'MySQL', '5.7');
     }
 }

@@ -54,7 +54,7 @@ All code is in English: classes, methods, variables, tables, columns, enum value
 | Description fonctionnelle (formerly « écart ») | `deviation`: how the item works in this version |
 | Description standard | `standard_description` |
 | Règle métier | `BusinessRule` (displayed `RM-0042`) |
-| Composant, intégration | `Component` (displayed `CMP-0001`, a technical part of a version), `Integration` (`INT-0001`, from a component to another component or to an `external_system`: exactly one target, CHECK) |
+| Composant | `Component` (displayed `CMP-0001`, a technical part of a version with its technology and a note; API and integrations are not tracked) |
 | Workflow, étape | `Workflow` (displayed `WF-0003`, belongs to a product), `WorkflowStep` (ordered, realized by a catalog `Feature`, linked to many `BusinessRule`s; `kind` action, decision or end, RG-17) |
 | Sortie (si / sinon) | `WorkflowTransition` (from a step to a step of the same workflow, with its condition `label`); `WorkflowGraph` builds the graph, checks and diagram layout |
 | Problème | `Issue` (displayed `PB-0042`): README finding statuses plus « abandonné » (`IssueStatus::isOpen()`), effort range `effort_min_days`/`effort_max_days` with `Confidence`, impact, owner, repository, component, GitLab ticket (L5) |

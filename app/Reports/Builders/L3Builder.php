@@ -5,9 +5,7 @@ namespace App\Reports\Builders;
 use App\Actions\Referential\ResolveStackSupport;
 use App\Enums\ComponentType;
 use App\Enums\SupportStatus;
-use App\Enums\VerificationStatus;
 use App\Models\Component;
-use App\Models\Integration;
 use App\Models\Version;
 use App\Reports\Content\ReportContent;
 use App\Reports\Content\TableSection;
@@ -18,7 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * L3 — Cartographie technique: components of each application, their integrations, the database
+ * L3 — Cartographie technique: components of each application (integrations are not tracked), the database
  * engines and the dependencies of the repositories, checked against the technologies referential.
  * A future perspective (Satis_SaaS) is left out. Everything is entered by hand while the GitLab
  * integration is disabled; nothing is guessed.
@@ -47,61 +45,45 @@ final class L3Builder implements ReportBuilder
             ->orderBy('name')->orderBy('id')
             ->get();
 
-        $componentIds = $versions->flatMap(fn (Version $version): Collection => $version->components->pluck('id'));
-        $integrations = Integration::query()
-            ->active()
-            ->whereIn('source_component_id', $componentIds)
-            ->where(fn ($query) => $query->whereNull('target_component_id')->orWhereHas('target', fn ($query) => $query->whereNull('archived_at')))
-            ->with(['source.version', 'target.version'])
-            ->orderBy('source_component_id')->orderBy('id')
-            ->get();
-
         $content = new ReportContent(
             product: sprintf('%s (%s)', $product->name, $product->code),
             client: $customer !== null ? sprintf('%s · %s', $customer->displayCode(), $customer->name) : 'Tous les clients',
         );
 
         return $content
-            ->set('architecture.overview', $this->overview($versions, $integrations))
+            ->set('architecture.overview', $this->overview($versions))
             ->set('components.table', $this->componentsTable($versions))
-            ->set('integrations.table', $this->integrationsTable($integrations))
+            ->set('integrations.table', (new TextSection)->paragraph('Les API et intégrations ne sont pas suivies dans l’application : les flux entre composants et avec les systèmes externes sont à confirmer auprès des équipes techniques.'))
+            ->addPending('API et intégrations : non suivies dans l’application')
             ->set('databases.table', $this->databasesTable($versions))
             ->set('dependencies.table', $this->dependenciesTable($versions))
-            ->set('architecture.risks', $this->risks($versions, $integrations));
+            ->set('architecture.risks', $this->risks($versions));
     }
 
     /**
      * @param  Collection<int, Version>  $versions
-     * @param  Collection<int, Integration>  $integrations
      */
-    private function overview(Collection $versions, Collection $integrations): TextSection
+    private function overview(Collection $versions): TextSection
     {
         $components = $versions->flatMap(fn (Version $version): Collection => $version->components);
         $byType = $components->countBy(fn (Component $component): string => $component->type->label())
             ->map(fn (int $count, string $label): string => $label.' : '.$count)
             ->values();
-        $externals = $integrations->filter(fn (Integration $integration): bool => $integration->isExternal())
-            ->pluck('external_system')->unique()->sort()->values();
 
         $repositories = $versions->sum(fn (Version $version): int => $version->repositories->count());
 
         $section = (new TextSection)->paragraph(sprintf(
-            '%d application%s, %d dépôt%s, %d composant%s et %d intégration%s dans le périmètre.',
+            '%d application%s, %d dépôt%s et %d composant%s dans le périmètre.',
             $versions->count(), $this->plural($versions->count()),
             $repositories, $this->plural($repositories),
             $components->count(), $this->plural($components->count()),
-            $integrations->count(), $this->plural($integrations->count()),
         ));
 
         if ($byType->isNotEmpty()) {
             $section->paragraph('Composants par type :')->bullets($byType->all());
         }
 
-        if ($externals->isNotEmpty()) {
-            $section->paragraph('Systèmes externes : '.$externals->implode(', ').'.');
-        }
-
-        return $section->paragraph('Source des données : saisie manuelle dans Satis Pilotage. L’intégration GitLab n’étant pas activée, les versions et les dépendances ne sont pas relues automatiquement dans les dépôts ; chaque ligne porte son statut de vérification.');
+        return $section->paragraph('Source des données : saisie manuelle dans Satis Pilotage. L’intégration GitLab n’étant pas activée, les versions et les dépendances ne sont pas relues automatiquement dans les dépôts.');
     }
 
     /**
@@ -132,35 +114,6 @@ final class L3Builder implements ReportBuilder
                     'note' => $component->description !== null ? Str::limit(trim((string) preg_replace('/\s+/u', ' ', $component->description)), 300, '…') : null,
                 ]);
             }
-        }
-
-        return $table;
-    }
-
-    /**
-     * @param  Collection<int, Integration>  $integrations
-     */
-    private function integrationsTable(Collection $integrations): TableSection
-    {
-        $table = (new TableSection('Intégrations'))
-            ->column('integration_id', 'Identifiant')
-            ->column('source', 'Source')
-            ->column('target', 'Cible')
-            ->column('protocol', 'Protocole')
-            ->column('description', 'Description', required: false)
-            ->column('evidence_url', 'Preuve')
-            ->column('verification_status', 'Vérification');
-
-        foreach ($integrations as $integration) {
-            $table->row([
-                'integration_id' => $integration->displayCode(),
-                'source' => $this->componentLabel($integration->source),
-                'target' => $integration->target !== null ? $this->componentLabel($integration->target) : 'Externe : '.$integration->external_system,
-                'protocol' => $integration->protocol->label(),
-                'description' => $integration->description,
-                'evidence_url' => $integration->evidence_url,
-                'verification_status' => $integration->verification_status->label(),
-            ]);
         }
 
         return $table;
@@ -228,9 +181,8 @@ final class L3Builder implements ReportBuilder
 
     /**
      * @param  Collection<int, Version>  $versions
-     * @param  Collection<int, Integration>  $integrations
      */
-    private function risks(Collection $versions, Collection $integrations): TextSection
+    private function risks(Collection $versions): TextSection
     {
         $obsolete = [];
         $note = function (string $where, ?string $name, ?string $version) use (&$obsolete): void {
@@ -251,20 +203,11 @@ final class L3Builder implements ReportBuilder
             }
         }
 
-        $components = $versions->flatMap(fn (Version $version): Collection => $version->components);
-        $toVerify = $integrations->filter(fn (Integration $integration): bool => $integration->verification_status === VerificationStatus::ToVerify)->count();
-        $withoutEvidence = $integrations->filter(fn (Integration $integration): bool => blank($integration->evidence_url))->count();
         $withoutComponents = $versions->filter(fn (Version $version): bool => $version->components->isEmpty());
 
         $section = new TextSection;
         $section->paragraph('Risques relevés :');
         $risks = array_values(array_unique($obsolete));
-        if ($toVerify > 0) {
-            $risks[] = sprintf('%d intégration%s encore à vérifier.', $toVerify, $this->plural($toVerify));
-        }
-        if ($withoutEvidence > 0) {
-            $risks[] = sprintf('%d intégration%s sans preuve (contrat d’interface, code client ou documentation).', $withoutEvidence, $this->plural($withoutEvidence));
-        }
         if ($withoutComponents->isNotEmpty()) {
             $risks[] = 'Architecture non décrite pour : '.$withoutComponents->map(fn (Version $version): string => $version->displayCode().' · '.$version->name)->implode(', ').'.';
         }
@@ -311,11 +254,6 @@ final class L3Builder implements ReportBuilder
     private function supportLabel(SupportStatus $status, ?string $endOfSupport): string
     {
         return $status->label().($endOfSupport !== null ? ' (fin : '.$endOfSupport.')' : '');
-    }
-
-    private function componentLabel(Component $component): string
-    {
-        return sprintf('%s · %s (%s)', $component->displayCode(), $component->name, $component->version->displayCode());
     }
 
     private function plural(int $count): string
