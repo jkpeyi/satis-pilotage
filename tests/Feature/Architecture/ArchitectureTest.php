@@ -29,8 +29,7 @@ it('describes components and integrations from the architecture page', function 
         ->set('componentForm.repository_id', (string) $this->repository->id)
         ->set('componentForm.technology', 'Laravel')
         ->set('componentForm.technology_version', '9.52.16')
-        ->set('componentForm.evidence_url', 'https://gitlab.example.test/satis/api/-/blob/main/composer.lock')
-        ->set('componentForm.verification_status', 'verified')
+        ->set('componentForm.description', 'Expose les **services** métier.')
         ->call('saveComponent')
         ->assertHasNoErrors()
         ->call('createComponent')
@@ -41,7 +40,10 @@ it('describes components and integrations from the architecture page', function 
 
     [$api, $front] = [Component::query()->where('name', 'API métier')->sole(), Component::query()->where('name', 'Front agences')->sole()];
     expect($api->technologyLabel())->toBe('Laravel 9.52.16')
-        ->and($api->verified_by)->toBe($this->user->id);
+        ->and($api->description)->toBe('Expose les **services** métier.');
+    // Integrations are added from the « API et intégrations » card only, not from a component row.
+    $page->assertSee('Expose les **services** métier.')
+        ->assertDontSeeHtml('wire:click="createIntegration('.$api->id.')"');
 
     $page->call('createIntegration', $front->id)
         ->set('integrationForm.target_component_id', (string) $front->id)
